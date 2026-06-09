@@ -4,7 +4,6 @@
   "devCommand": "pnpm dev",
   "installCommand": "pnpm install --ignore-workspace",
   "framework": "nextjs",
-  "regions": ["hkg1", "sin1"],
   "headers": [
     {
       "source": "/(.*)",
