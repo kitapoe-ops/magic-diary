@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { X, Sparkles, Settings as SettingsIcon } from "lucide-react"
+import { X, Sparkles, Settings as SettingsIcon, PenLine } from "lucide-react"
 import { MOODS, STICKERS, type DiaryEntry, type MoodKey } from "@/lib/mock-data"
 import type { Dict } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import { useChime } from "@/hooks/use-chime"
 import { useI18n } from "@/hooks/use-i18n"
 import { DEEPSEEK_OPEN_EVENT, DEEPSEEK_TOKEN_KEY } from "./deepseek-settings"
+import { MagicPenWriting } from "./magic-pen-writing"
 
 interface EntryModalProps {
   open: boolean
@@ -46,6 +47,9 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
   const [lumiReply, setLumiReply] = useState<string | null>(null)
   const [lumiError, setLumiError] = useState<string | null>(null)
   const [aiLang, setAiLang] = useState<"en" | "zh">(locale === "zh" ? "zh" : "en")
+
+  // Bump to replay the Lumi reply typewriter animation.
+  const [lumiReplayKey, setLumiReplayKey] = useState(0)
 
   useEffect(() => {
     setAiLang(locale === "zh" ? "zh" : "en")
@@ -128,6 +132,7 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
         return
       }
       setLumiReply(data.reply)
+      setLumiReplayKey((k) => k + 1)
       chime(1180)
     } catch (err) {
       setLumiError(err instanceof Error ? err.message : t.modalAiError)
@@ -258,6 +263,32 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
             {casting ? t.modalCasting : t.modalCast}
             <Sparkles className={cn("h-5 w-5", casting && "animate-spin")} />
           </Button>
+
+          {/* Casting “書寫中” overlay — a magic pen wipes across the
+              entry title while sparkles spin at both ends, replacing
+              the old plain animate-pulse. */}
+          {casting && (
+            <div
+              className="relative mt-2 overflow-hidden rounded-2xl border-2 border-gold/40 bg-gold/5 px-4 py-3"
+              role="status"
+              aria-live="polite"
+            >
+              <div className="flex items-center gap-2">
+                <span className="casting-sparkle text-lg" aria-hidden="true">🪄</span>
+                <span className="handwriting flex-1 truncate text-sm text-secondary">
+                  {title.trim() || t.modalPlaceholderTitle}
+                </span>
+                <span className="casting-sparkle text-lg" aria-hidden="true">✨</span>
+              </div>
+              <span
+                className="pen-wipe"
+                style={{ filter: "drop-shadow(0 0 6px hsla(43,96%,56%,0.7))" }}
+                aria-hidden="true"
+              >
+                <PenLine className="h-5 w-5 -translate-y-1 text-gold" />
+              </span>
+            </div>
+          )}
         </form>
 
         {/* Lumi divider */}
@@ -326,16 +357,33 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
 
           {lumiReply && (
             <div className="rounded-2xl border-2 border-gold/40 bg-gold/10 p-4">
-              <p className="mb-1 text-xs font-bold uppercase tracking-wide text-gold">
-                {t.modalLumiSays}
-              </p>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-secondary">
-                {lumiReply}
-              </p>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-xs font-bold uppercase tracking-wide text-gold">
+                  {t.modalLumiSays}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setLumiReplayKey((k) => k + 1)}
+                  aria-label={aiLang === "zh" ? "重新觀看" : "Replay"}
+                  className="rounded-full border border-gold/50 px-2 py-0.5 text-[11px] font-semibold text-gold transition-colors hover:bg-gold/20"
+                >
+                  🔄 {aiLang === "zh" ? "重新觀看" : "Replay"}
+                </button>
+              </div>
+              <MagicPenWriting
+                text={lumiReply}
+                replayKey={lumiReplayKey}
+                speed={45}
+                onComplete={() => {
+                  // The chime fires when summonLumi receives the reply;
+                  // this hook is here for future hooks (e.g. a tiny
+                  // sparkle on the card if we ever surface Lumi on it).
+                }}
+              />
               <button
                 type="button"
                 onClick={() => setLocale(aiLang)}
-                className="mt-2 text-[11px] font-semibold text-gold underline"
+                className="mt-3 text-[11px] font-semibold text-gold underline"
               >
                 {aiLang === "zh" ? "切換介面到中文" : "Switch UI to Chinese"}
               </button>

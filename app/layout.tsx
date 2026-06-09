@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Quicksand, Pacifico } from "next/font/google"
+import { Quicksand, Pacifico, Kalam } from "next/font/google"
 import "./globals.css"
 
 const quicksand = Quicksand({
@@ -13,6 +13,14 @@ const pacifico = Pacifico({
   subsets: ["latin"],
   variable: "--font-pacifico",
   weight: ["400"],
+})
+
+// Handwriting font — used for diary body / titles so the page feels like
+// a real journal written with a magic pen.
+const kalam = Kalam({
+  subsets: ["latin"],
+  variable: "--font-kalam",
+  weight: ["400", "700"],
 })
 
 export const metadata: Metadata = {
@@ -34,7 +42,11 @@ export default function RootLayout({
   // The I18nProvider (client) updates document.documentElement.lang on mount
   // and whenever the locale changes. Default to "en" for SSR consistency.
   return (
-    <html lang="en" suppressHydrationWarning className={`${quicksand.variable} ${pacifico.variable} bg-background`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${quicksand.variable} ${pacifico.variable} ${kalam.variable} bg-background`}
+    >
       <body className="font-sans antialiased">{children}</body>
     </html>
   )

@@ -13,6 +13,7 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-quicksand)", "system-ui", "sans-serif"],
         cursive: ["var(--font-pacifico)", "cursive"],
+        handwriting: ["var(--font-kalam)", "\"Comic Sans MS\"", "\"Bradley Hand\"", "cursive"],
       },
       colors: {
         background: "hsl(var(--background))",

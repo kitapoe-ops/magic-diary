@@ -41,7 +41,7 @@ export function DiaryCard({ entry, onEdit, onDelete }: DiaryCardProps) {
   return (
     <article
       onMouseEnter={spawnParticles}
-      className="glass-card group relative overflow-hidden rounded-3xl p-5 animate-slide-up"
+      className="glass-card handwriting-wobble group relative overflow-hidden rounded-3xl p-5 animate-slide-up"
     >
       {/* hover particles */}
       {particles.map((p) => (
@@ -102,11 +102,11 @@ export function DiaryCard({ entry, onEdit, onDelete }: DiaryCardProps) {
         </span>
       </div>
 
-      <h3 className="gradient-title mb-2 text-pretty text-lg font-bold leading-snug md:text-xl">
+      <h3 className="handwriting-bold gradient-title mb-2 text-pretty text-2xl leading-snug">
         {entry.title}
       </h3>
 
-      <p className="text-pretty leading-relaxed text-secondary/90">{entry.body}</p>
+      <p className="handwriting text-pretty text-secondary/90">{entry.body}</p>
 
       {/* sticker row */}
       <div className={cn("mt-4 flex items-center gap-2")}>

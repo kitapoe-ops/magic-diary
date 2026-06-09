@@ -80,8 +80,38 @@
     @apply border-border;
   }
   body {
-    @apply text-foreground font-sans;
+    @apply text-foreground;
+    /* Diary body defaults to handwriting (Kalam) — UI chrome
+       (header, sidebar, achievement level, etc.) overrides with
+       .font-sans or .font-cursive as needed. */
+    font-family: var(--font-kalam), "Comic Sans MS", "Bradley Hand", cursive;
+    font-size: 1.1rem;
+    line-height: 1.65;
   }
+}
+
+/* Handwriting utility — opt-in for any element that wants the
+   magic-pen Kalam look without losing the body-wide default. */
+.handwriting {
+  font-family: var(--font-kalam), "Comic Sans MS", "Bradley Hand", cursive;
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+}
+
+.handwriting-bold {
+  font-family: var(--font-kalam), "Comic Sans MS", "Bradley Hand", cursive;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+}
+
+/* Gentle wobble used on diary-card hover. */
+.handwriting-wobble {
+  transition: transform 0.35s ease;
+}
+.handwriting-wobble:hover {
+  transform: rotate(-0.5deg);
 }
 
 /* Animated starry night background */
@@ -191,4 +221,101 @@
 ::-webkit-scrollbar-thumb {
   background: hsla(263, 60%, 55%, 0.5);
   border-radius: 999px;
+}
+
+/* =====================================================================
+   Magic Pen Writing — spark-burst keyframes
+   ===================================================================== */
+
+/* 12 particles fly outward in 360°, fade + scale up. Used both by
+   MagicPenWriting (last-character burst) and by entry-modal casting
+   line (left/right of the wipe). Total duration ≤ 1.2s per task spec. */
+@keyframes spark-burst {
+  0% {
+    transform: translate(0, 0) scale(0.4) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    /* The exact translate is set inline per-particle via custom
+       properties, but we provide a sane fallback. */
+    transform: translate(var(--spark-x, 0px), var(--spark-y, -40px))
+      scale(1.5) rotate(var(--spark-r, 180deg));
+    opacity: 0;
+  }
+}
+
+.spark-particle {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+  will-change: transform, opacity;
+  animation: spark-burst 1s ease-out forwards;
+}
+
+/* Wipe effect — pen icon traverses the entry title while the magic
+   line is being written. */
+@keyframes pen-wipe {
+  0% {
+    left: 0%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+.pen-wipe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  animation: pen-wipe 0.7s ease-in-out forwards;
+  pointer-events: none;
+}
+
+/* Each magic-pen character fades in + slides up. Inline animation-delay
+   (set per character) controls the typewriter rhythm. */
+.magic-pen-char {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: magic-pen-in 0.45s ease-out forwards;
+  white-space: pre;
+}
+
+@keyframes magic-pen-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Sparkle spin for left/right of the casting line. */
+@keyframes casting-spin {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.25) rotate(180deg);
+  }
+}
+
+.casting-sparkle {
+  display: inline-block;
+  animation: casting-spin 0.9s ease-in-out infinite;
 }
