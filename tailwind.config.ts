@@ -13,7 +13,21 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-quicksand)", "system-ui", "sans-serif"],
         cursive: ["var(--font-pacifico)", "cursive"],
-        handwriting: ["var(--font-kalam)", "\"Comic Sans MS\"", "\"Bradley Hand\"", "cursive"],
+        // CJK-first handwriting stack: ZCOOL KuaiLe (web, Chinese
+        // round-script) → Kalam (web, Latin) → system Chinese
+        // fallbacks → cursive generic.
+        handwriting: [
+          "var(--font-zcool)",
+          "var(--font-kalam)",
+          "\"ZCOOL KuaiLe\"",
+          "\"Comic Sans MS\"",
+          "\"Bradley Hand\"",
+          "\"Microsoft YaHei\"",
+          "\"PingFang SC\"",
+          "\"Hiragino Sans GB\"",
+          "\"Noto Sans CJK SC\"",
+          "cursive",
+        ],
       },
       colors: {
         background: "hsl(var(--background))",

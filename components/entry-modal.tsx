@@ -374,6 +374,7 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
                 text={lumiReply}
                 replayKey={lumiReplayKey}
                 speed={45}
+                notebook={true}
                 onComplete={() => {
                   // The chime fires when summonLumi receives the reply;
                   // this hook is here for future hooks (e.g. a tiny

@@ -81,26 +81,37 @@
   }
   body {
     @apply text-foreground;
-    /* Diary body defaults to handwriting (Kalam) — UI chrome
-       (header, sidebar, achievement level, etc.) overrides with
-       .font-sans or .font-cursive as needed. */
-    font-family: var(--font-kalam), "Comic Sans MS", "Bradley Hand", cursive;
+    /* Diary body defaults to a CJK-friendly handwriting stack:
+       ZCOOL KuaiLe (Chinese round-script) first, then Kalam (Latin
+       script) so English passages still feel hand-written, then a
+       cascade of named Chinese families for users who don't have the
+       webfont cached. UI chrome (header, sidebar, achievement level,
+       etc.) overrides with .font-sans or .font-cursive as needed. */
+    font-family: var(--font-zcool), var(--font-kalam), "ZCOOL KuaiLe",
+      "Comic Sans MS", "Bradley Hand", "Microsoft YaHei", "PingFang SC",
+      "Hiragino Sans GB", "Noto Sans CJK SC", cursive;
     font-size: 1.1rem;
     line-height: 1.65;
   }
 }
 
 /* Handwriting utility — opt-in for any element that wants the
-   magic-pen Kalam look without losing the body-wide default. */
+   magic-pen look without losing the body-wide default. Covers both
+   CJK (ZCOOL KuaiLe + system Chinese fallbacks) and Latin (Kalam)
+   so a single class works for mixed-language diary entries. */
 .handwriting {
-  font-family: var(--font-kalam), "Comic Sans MS", "Bradley Hand", cursive;
+  font-family: var(--font-zcool), var(--font-kalam), "ZCOOL KuaiLe",
+    "Comic Sans MS", "Bradley Hand", "Microsoft YaHei", "PingFang SC",
+    "Hiragino Sans GB", "Noto Sans CJK SC", cursive;
   font-weight: 400;
   line-height: 1.6;
   letter-spacing: 0.01em;
 }
 
 .handwriting-bold {
-  font-family: var(--font-kalam), "Comic Sans MS", "Bradley Hand", cursive;
+  font-family: var(--font-zcool), var(--font-kalam), "ZCOOL KuaiLe",
+    "Comic Sans MS", "Bradley Hand", "Microsoft YaHei", "PingFang SC",
+    "Hiragino Sans GB", "Noto Sans CJK SC", cursive;
   font-weight: 700;
   line-height: 1.5;
   letter-spacing: 0.01em;

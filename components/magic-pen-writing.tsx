@@ -18,10 +18,14 @@
  *   replayKey  — bump this to reset + replay the animation
  *   speed      — ms per character (default 60)
  *   className  — extra classes for the wrapper
+ *   notebook   — if true (default), wrap the text in a NotebookPage
+ *                (cream paper + ruled lines + red margin). Set false
+ *                to render plain (e.g. inside a card body).
  */
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
+import { NotebookPage } from "@/components/notebook-page"
 
 export interface MagicPenWritingProps {
   text: string
@@ -29,6 +33,8 @@ export interface MagicPenWritingProps {
   replayKey?: number | string
   speed?: number
   className?: string
+  /** Default true — wrap the typed text in a cream notebook page. */
+  notebook?: boolean
 }
 
 const SPARK_EMOJIS = ["✨", "⭐", "💜", "🌟", "💫", "🪄"]
@@ -68,6 +74,7 @@ export function MagicPenWriting({
   replayKey,
   speed = 60,
   className,
+  notebook = true,
 }: MagicPenWritingProps) {
   // We use replayKey as a state token so changing it forces a fresh
   // animation pass without us re-keying the entire component tree.
@@ -141,7 +148,9 @@ export function MagicPenWriting({
 
   const chars = useMemo(() => Array.from(text), [text])
 
-  return (
+  // The actual pen + text body, lifted out so we can optionally
+  // wrap it in a NotebookPage (the Lumi reply default).
+  const body = (
     <div
       ref={containerRef}
       className={cn("relative w-full select-none", className)}
@@ -189,10 +198,12 @@ export function MagicPenWriting({
         </svg>
       </div>
 
-      {/* The text — each char is a span that fades in on schedule. */}
+      {/* The text — each char is a span that fades in on schedule.
+          line-height 2rem (Tailwind leading-8) keeps the baseline on
+          the same ruled line used by NotebookPage. */}
       <p
-        className="handwriting relative mt-1 whitespace-pre-wrap text-base md:text-lg"
-        style={{ minHeight: "1.5em" }}
+        className="handwriting relative mt-1 whitespace-pre-wrap text-base leading-8 md:text-lg"
+        style={{ minHeight: "2rem" }}
       >
         {chars.map((ch, i) => (
           <span
@@ -204,11 +215,13 @@ export function MagicPenWriting({
           </span>
         ))}
 
-        {/* Spark burst — positioned at the end of the line. */}
+        {/* Spark burst — anchored at the end of the line, on the
+            baseline (bottom) so it visually punches out from the
+            last character's tail. */}
         {sparks.length > 0 && (
           <span
             className="pointer-events-none absolute"
-            style={{ right: 0, top: "50%", transform: "translate(0, -50%)" }}
+            style={{ right: 0, bottom: "0.25rem" }}
             aria-hidden="true"
           >
             {sparks.map((s) => (
@@ -238,6 +251,16 @@ export function MagicPenWriting({
         {revealedCount >= chars.length && chars.length > 0 ? text : ""}
       </span>
     </div>
+  )
+
+  // Default: render the writing on a cream notebook page. Set
+  // `notebook={false}` to render the raw animated text only.
+  if (!notebook) return body
+
+  return (
+    <NotebookPage variant="reply" className="mt-1">
+      {body}
+    </NotebookPage>
   )
 }
 

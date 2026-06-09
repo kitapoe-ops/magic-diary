@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Quicksand, Pacifico, Kalam } from "next/font/google"
+import { Quicksand, Pacifico, Kalam, ZCOOL_KuaiLe } from "next/font/google"
 import "./globals.css"
 
 const quicksand = Quicksand({
@@ -21,6 +21,18 @@ const kalam = Kalam({
   subsets: ["latin"],
   variable: "--font-kalam",
   weight: ["400", "700"],
+})
+
+// Chinese handwriting font — Kalam's next/font/google only ships the
+// `latin` subset, so CJK glyphs would otherwise fall through to the
+// system default. ZCOOL KuaiLe is a playful round-script Chinese face
+// from Google Fonts; we load the latin subset (the only subset the
+// next/font types expose for this family) and rely on the named
+// "ZCOOL KuaiLe" + system CJK fallbacks for the actual CJK glyphs.
+const zcool = ZCOOL_KuaiLe({
+  subsets: ["latin"],
+  variable: "--font-zcool",
+  weight: ["400"],
 })
 
 export const metadata: Metadata = {
@@ -45,7 +57,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${quicksand.variable} ${pacifico.variable} ${kalam.variable} bg-background`}
+      className={`${quicksand.variable} ${pacifico.variable} ${kalam.variable} ${zcool.variable} bg-background`}
     >
       <body className="font-sans antialiased">{children}</body>
     </html>

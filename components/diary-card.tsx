@@ -6,6 +6,7 @@ import { MOODS, type DiaryEntry } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { useI18n } from "@/hooks/use-i18n"
+import { NotebookPage } from "@/components/notebook-page"
 
 interface DiaryCardProps {
   entry: DiaryEntry
@@ -102,11 +103,18 @@ export function DiaryCard({ entry, onEdit, onDelete }: DiaryCardProps) {
         </span>
       </div>
 
-      <h3 className="handwriting-bold gradient-title mb-2 text-pretty text-2xl leading-snug">
-        {entry.title}
-      </h3>
-
-      <p className="handwriting text-pretty text-secondary/90">{entry.body}</p>
+      {/* Title + body share a single "notebook page" so the cream paper
+          is a single visual element. Mood + category + stickers stay
+          on the outer glassmorphism card so the magic-theme purple +
+          gold + emoji decorations still pop on the dark glass. */}
+      <NotebookPage variant="diary" className="mb-1">
+        <h3 className="handwriting-bold gradient-title mb-2 text-pretty text-2xl leading-8">
+          {entry.title}
+        </h3>
+        <p className="handwriting text-pretty leading-8 text-[#3a2a14]/90 dark:text-[#3a2a14]">
+          {entry.body}
+        </p>
+      </NotebookPage>
 
       {/* sticker row */}
       <div className={cn("mt-4 flex items-center gap-2")}>
