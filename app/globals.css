@@ -95,20 +95,77 @@
   }
 }
 
+/* =====================================================================
+   Notebook paper — theme-aware CSS custom properties
+   =====================================================================
+   Iteration 5: dark mode no longer re-uses cream paper. Instead:
+     - Dark mode (`:root`, the default) = deep purple paper + light
+       purple-white ink. The notebook is now a real "starry night
+       journal" with luminous ink, not cream paper painted on top of
+       a dark backdrop.
+     - Light mode (`.day`) = the original cream paper + deep purple
+       ink, unchanged.
+
+   All notebook visuals (paper gradient, ruled lines, red margin,
+   spine shadow) and the handwriting ink colour are driven by CSS
+   custom properties so the JSX doesn't have to branch on theme. The
+   ink variable flips automatically when `<html class="day">` is
+   toggled by ThemeProvider.
+
+   Contrast (WCAG):
+     - Light: #2a1a4a on #fdf6e3  ≈ 13.9:1 (AAA)
+     - Dark : #e9d5ff on #1e1b4b  ≈ 11.4:1 (AAA)
+   Both well above the 7:1 AAA threshold. */
+:root {
+  /* Paper (dark = default) */
+  --paper-bg: linear-gradient(135deg, #1e1b4b, #2e1065 50%, #0b0717);
+  --paper-ruled-lines: linear-gradient(
+    transparent calc(2rem - 1px),
+    rgba(196, 181, 253, 0.15) calc(2rem - 1px),
+    rgba(196, 181, 253, 0.15) 2rem,
+    transparent 2rem
+  );
+  --paper-margin: rgba(244, 114, 182, 0.3);  /* fuchsia-300/30 */
+  --paper-spine: rgba(196, 181, 253, 0.15);  /* lavender-300/15 */
+
+  /* Handwriting ink (dark = light purple-white) */
+  --handwriting-ink: #e9d5ff;
+  --handwriting-shadow: 0 0 1px rgba(76, 29, 149, 0.8), 0 1px 0 rgba(255, 215, 0, 0.3);
+
+  /* Magic-pen gold wave line (dark = slightly brighter gold) */
+  --pen-wave-color: hsla(43, 96%, 70%, 0.65);
+}
+
+.day {
+  /* Paper (light = cream) */
+  --paper-bg: linear-gradient(135deg, #fdf6e3, #f7efd8 50%, #f3e9c8);
+  --paper-ruled-lines: linear-gradient(
+    transparent calc(2rem - 1px),
+    rgba(180, 83, 9, 0.18) calc(2rem - 1px),
+    rgba(180, 83, 9, 0.18) 2rem,
+    transparent 2rem
+  );
+  --paper-margin: rgba(244, 63, 94, 0.4);   /* rose-300/40 */
+  --paper-spine: rgba(76, 29, 149, 0.25);   /* deep purple */
+
+  /* Handwriting ink (light = deep purple-black) */
+  --handwriting-ink: #2a1a4a;
+  --handwriting-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+
+  /* Magic-pen gold wave line (light = original warmer gold) */
+  --pen-wave-color: hsla(43, 96%, 56%, 0.55);
+}
+
 /* Handwriting utility — opt-in for any element that wants the
    magic-pen look without losing the body-wide default. Covers both
    CJK (ZCOOL KuaiLe + system Chinese fallbacks) and Latin (Kalam)
    so a single class works for mixed-language diary entries.
 
-   The colour is forced to a deep purple-black (#2a1a4a) in BOTH light
-   and dark mode. In dark mode the default `--foreground` is a light
-   lavender (HSL 258 90% 92%) which would clash with the cream
-   notebook paper and fail WCAG AA contrast. The deep purple-black
-   ink reads like real handwriting on cream paper, sits at > 4.5:1
-   contrast against every cream tone the NotebookPage uses, and
-   still feels "ink + magic" because the hue matches the brand
-   purple. A subtle 1px white text-shadow adds an extra hint of
-   paper-warmth legibility. */
+   The colour + text-shadow are driven by CSS custom properties
+   (`--handwriting-ink` / `--handwriting-shadow`) so they flip
+   automatically between dark and light mode. Dark mode uses light
+   purple-white ink on deep purple paper; light mode uses deep
+   purple-black ink on cream paper. */
 .handwriting {
   font-family: var(--font-zcool), var(--font-kalam), "ZCOOL KuaiLe",
     "Comic Sans MS", "Bradley Hand", "Microsoft YaHei", "PingFang SC",
@@ -116,16 +173,13 @@
   font-weight: 400;
   line-height: 1.6;
   letter-spacing: 0.01em;
-  color: #2a1a4a;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  color: var(--handwriting-ink);
+  text-shadow: var(--handwriting-shadow);
 }
 
 /* Same ink colour as .handwriting, weight 700. Used for diary
-   card titles. We deliberately do NOT use `color: inherit` here
-   because some callers compose .handwriting-bold inside non-cream
-   surfaces (e.g. the title sits above the NotebookPage inner
-   gradient on a few layouts). The deep purple-black still reads
-   on dark glass at WCAG AA. */
+   card titles. Inherits the same CSS variables so dark/light mode
+   switch is automatic. */
 .handwriting-bold {
   font-family: var(--font-zcool), var(--font-kalam), "ZCOOL KuaiLe",
     "Comic Sans MS", "Bradley Hand", "Microsoft YaHei", "PingFang SC",
@@ -133,18 +187,41 @@
   font-weight: 700;
   line-height: 1.5;
   letter-spacing: 0.01em;
-  color: #2a1a4a;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+  color: var(--handwriting-ink);
+  text-shadow: var(--handwriting-shadow);
 }
 
-/* Light mode override: let the body keep its lavender foreground
-   for the UI chrome, but inside a "day" page (which is a soft
-   lavender background) make sure the handwriting ink is still
-   dark purple — a soft lavender ink would be lost in the wash. */
-.day .handwriting,
-.day .handwriting-bold {
-  color: #2a1a4a;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+/* =====================================================================
+   Notebook page — composable CSS classes
+   =====================================================================
+   These three classes back the <NotebookPage> component so the JSX
+   doesn't have to inline `bg-gradient-to-br` and `shadow-[...]` for
+   every notebook. Theme is driven by the CSS custom properties
+   above. */
+
+/* Layered background: ruled lines on top, paper gradient below.
+   `background-size: 100% 2rem` keeps the ruled lines aligned with
+   the 2rem line-height that diary text uses. */
+.notebook-paper {
+  background-image: var(--paper-ruled-lines), var(--paper-bg);
+  background-size: 100% 2rem, 100% 100%;
+  background-repeat: repeat, no-repeat;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Inset shadow on the left edge — suggests a bound book spine.
+   Uses `--paper-spine` so it picks up lavender in dark mode and
+   deep purple in light mode. */
+.notebook-spine {
+  box-shadow: inset 10px 0 14px -6px var(--paper-spine);
+}
+
+/* The vertical margin line on the left. Rendered as an explicit
+   <div> (not a pseudo-element) because `notebook-paper` already
+   uses `::before` for paper texture. */
+.notebook-margin {
+  background: var(--paper-margin);
 }
 
 /* Gentle wobble used on diary-card hover. */

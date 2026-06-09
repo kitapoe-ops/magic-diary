@@ -164,11 +164,14 @@ export function MagicPenWriting({
           className="absolute inset-0 h-full w-full"
           aria-hidden="true"
         >
-          {/* Hand-drawn wavy line */}
+          {/* Hand-drawn wavy line. Stroke colour is driven by the
+              `--pen-wave-color` CSS variable so dark mode gets a
+              brighter gold and light mode keeps the original warmer
+              gold. */}
           <path
             d={wavePath}
             fill="none"
-            stroke="hsla(43, 96%, 56%, 0.55)"
+            stroke="var(--pen-wave-color)"
             strokeWidth={1.5}
             strokeLinecap="round"
             strokeDasharray="4 5"

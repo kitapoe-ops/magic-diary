@@ -103,26 +103,24 @@ export function DiaryCard({ entry, onEdit, onDelete }: DiaryCardProps) {
         </span>
       </div>
 
-      {/* Title + body share a single "notebook page" so the cream paper
-          is a single visual element. Mood + category + stickers stay
+      {/* Title + body share a single "notebook page" so the paper is
+          a single visual element. Mood + category + stickers stay
           on the outer glassmorphism card so the magic-theme purple +
           gold + emoji decorations still pop on the dark glass.
 
-          The body uses an inline `style={{ color: "#2a1a4a" }}`
-          (deep purple-black ink) so it always reads on cream paper
-          regardless of the active theme. The same colour is also
-          enforced in `.handwriting` in `globals.css` (WCAG AA > 4.5:1
-          on the cream gradient). The inline style is the final
-          override so parent utilities like `text-secondary/90` cannot
-          accidentally soften the ink. */}
+          Both the title and the body use the `.handwriting` /
+          `.handwriting-bold` classes, which source their colour and
+          text-shadow from the `--handwriting-ink` / `--handwriting-
+          shadow` CSS variables. Those variables flip automatically
+          between dark and light mode (deep purple-black on cream in
+          `.day`, light purple-white on deep purple in `:root`), so
+          the diary text reads correctly on every theme without
+          needing any inline `style={{ color: ... }}` overrides. */}
       <NotebookPage variant="diary" className="mb-1">
         <h3 className="handwriting-bold gradient-title mb-2 text-pretty text-2xl leading-8">
           {entry.title}
         </h3>
-        <p
-          className="handwriting text-pretty leading-8"
-          style={{ color: "#2a1a4a" }}
-        >
+        <p className="handwriting text-pretty leading-8">
           {entry.body}
         </p>
       </NotebookPage>
@@ -131,22 +129,21 @@ export function DiaryCard({ entry, onEdit, onDelete }: DiaryCardProps) {
           action). Only renders when an entry actually has a reply
           persisted; legacy entries (no field) and entries that never
           summoned Lumi simply skip this block. Bilingual header via
-          the `lumiSays` i18n key. The colour is the same deep
-          purple-black ink as the diary body so the whole page reads
-          like one notebook. */}
+          the `lumiSays` i18n key. The card background flips with
+          theme: light mode keeps the warm `bg-gold/5`, dark mode
+          switches to a deep purple `bg-purple-500/10` so the gold
+          border still pops on the deep purple notebook paper. The
+          text inherits the theme-aware `.handwriting` ink colour. */}
       {entry.lumiReply && (
         <div
-          className="mt-3 rounded-2xl border-2 border-gold/40 bg-gold/5 p-3"
+          className="mt-3 rounded-2xl border-2 border-gold/40 bg-gold/5 p-3 dark:border-gold/60 dark:bg-purple-500/10"
           role="note"
           aria-label={t.lumiSays}
         >
           <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-gold">
             {t.lumiSays}
           </p>
-          <p
-            className="handwriting text-sm leading-relaxed"
-            style={{ color: "#2a1a4a" }}
-          >
+          <p className="handwriting text-sm leading-relaxed">
             {entry.lumiReply}
           </p>
         </div>

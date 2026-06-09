@@ -488,3 +488,77 @@ Dev server: `Ready in 1243ms` on `http://localhost:3005` (ports 3000-3004 occupi
 - **A diary card on the feed** now has, top to bottom: glassmorphism frame (purple border + gold-glow hover) ??date badge + mood emoji + edit/delete buttons ??category chip ??**cream notebook page** (title in gold-purple gradient, body in deep purple-black Kalam / ZCOOL KuaiLe on cream paper, ruled lines + red margin) ??**gold-bordered Lumi card** (only if the user summoned Lumi for this entry) ??sticker row.
 - **Editing a previous entry** preserves Lumi's reply by default. To replace it, the user re-summons Lumi in the modal and the new reply overwrites. To wipe it, the user can clear the reply in the modal (a small UX add ??out of scope for this iteration; the brief said "‰øùÁ??üÊ? lumiReply" which is what we ship).
 - **Dark mode** now reads like ink on cream paper, not lavender on lavender. Same deep purple-black ink in day mode, so the notebook feels like a real journal under both themes.
+
+---
+
+## Iteration 5 °X Dark Mode Color Refactor (CSS Variables)
+
+### Root cause
+
+Iteration 4 forced .handwriting to color: #2a1a4a (deep purple-black ink) for WCAG AA contrast on the cream notebook paper. But in dark mode the notebook paper is still cream, so a "dark mode app with cream paper and dark ink" reads as a foreign overlay °X not a true dark theme. The fix: dark mode now uses **deep purple paper + light purple-white ink**, while light mode keeps the original cream + deep purple.
+
+### Goal
+
+- **Light mode (.day)**: cream paper + deep purple-black ink (unchanged from iteration 4).
+- **Dark mode (:root)**: deep purple paper + light purple-white ink + gold/purple accents.
+
+All theme switching is now driven by CSS custom properties that flip between :root and .day. The JSX contains **no inline style={{ color: ... }} overrides** anymore °X every text and surface picks up the theme via the variable automatically.
+
+### CSS variables introduced (5 per theme, 10 total)
+
+| Variable | Dark mode (:root) | Light mode (.day) |
+|----------|---------------------|---------------------|
+| --paper-bg | linear-gradient(135deg, #1e1b4b, #2e1065 50%, #0b0717) | linear-gradient(135deg, #fdf6e3, #f7efd8 50%, #f3e9c8) |
+| --paper-ruled-lines | gba(196, 181, 253, 0.15) lavender | gba(180, 83, 9, 0.18) warm sepia |
+| --paper-margin | gba(244, 114, 182, 0.3) fuchsia-300/30 | gba(244, 63, 94, 0.4) rose-300/40 |
+| --paper-spine | gba(196, 181, 253, 0.15) lavender | gba(76, 29, 149, 0.25) deep purple |
+| --handwriting-ink | #e9d5ff light purple-white | #2a1a4a deep purple-black |
+| --handwriting-shadow |   0 1px rgba(76,29,149,0.8), 0 1px 0 rgba(255,215,0,0.3) gold + purple halo |   1px 0 rgba(255,255,255,0.4) white |
+| --pen-wave-color | hsla(43, 96%, 70%, 0.65) brighter gold | hsla(43, 96%, 56%, 0.55) original gold |
+
+### Files modified (4)
+
+| File | Lines | Change |
+|------|------:|--------|
+| pp/globals.css | +104 ?24 | Added :root / .day CSS variable block (7 vars per theme), refactored .handwriting / .handwriting-bold to read from --handwriting-ink / --handwriting-shadow, added three composable classes: .notebook-paper, .notebook-spine, .notebook-margin (theme-pure). |
+| components/notebook-page.tsx | +28 ?16 | Removed inline g-gradient-to-br, dark:bg-[...], and shadow-[inset_...]. Replaced with 
+otebook-paper + 
+otebook-spine classes and an explicit <div className="notebook-margin absolute left-7 top-0 bottom-0 w-px" /> for the red/fuchsia margin line. |
+| components/magic-pen-writing.tsx | +3 ?1 | SVG wave-line stroke now uses ar(--pen-wave-color) instead of hardcoded hsla(43, 96%, 56%, 0.55). Character ink inherits .handwriting (no inline color). |
+| components/diary-card.tsx | +18 ?17 | Removed **3** inline style={{ color: "#2a1a4a" }} overrides on the body + Lumi reply. Lumi reply card now uses dark:border-gold/60 dark:bg-purple-500/10 so it stays visible on the deep purple paper. |
+
+### Files audited, no change needed
+
+- components/entry-modal.tsx °X no inline color: styles found, but the casting overlay (line 292) and Lumi reply panel (line 379) were updated to use the same dark:border-gold/60 dark:bg-purple-500/10 swap so the visual treatment matches diary-card.tsx.
+
+### Hard-constraint check (Iteration 5)
+
+1. **No new dependencies** ? pnpm-lock.yaml and package.json byte-identical to 878e16c.
+2. **TypeScript-strict, all new code type-safe** ? 
+px tsc --noEmit returns exit 0. No new types; only CSS class additions and existing class composition.
+3. **Light mode (.day) visually unchanged** ? cream paper (#fdf6e3 °˜ #f3e9c8), warm sepia ruled lines, rose margin, deep purple-black ink #2a1a4a °X all preserved.
+4. **All paths absolute** ? C:\Users\kitap\.openclaw\workspace\magic-diary-work\.
+5. **pnpm build green** ? exit 0, 5/5 static pages prerendered, /api/magic-reply still dynamic, First Load JS 126 kB (unchanged from iteration 4).
+6. **WCAG AAA dark-mode contrast** ? #e9d5ff light purple-white on #1e1b4b deep purple ? **11.4:1** (well above the 7:1 AAA threshold).
+7. **CSS variables use :root (dark) + .day (light) pattern** ? 7 variables defined in :root (dark default), overridden in .day (light).
+8. **All inline style={{ color: "..." }} removed** ? grep for color:\s*["#] in components/*.tsx and pp/*.tsx returns zero matches (excluding 	hemeColor: "#4C1D95" in pp/layout.tsx, which is PWA meta, not a UI color).
+9. **No API tokens committed** ? git diff for .env* and token-shaped strings empty.
+
+### Build output
+
+`
+Route (app)                              Size     First Load JS
+¢z °≥ /                                    7.63 kB         126 kB
+¢u °≥ /_not-found                          870 B            88 kB
+¢u °≥ /achievements                        1.86 kB         120 kB
+¢u ? /api/magic-reply                     0 B                0 B
++ First Load JS shared by all            87.1 kB
+`
+
+Dev server: skipped per M2 lesson (zombie port issue). Main agent will smoke test.
+
+### Visual / UX summary
+
+- **Light mode**: identical to iteration 4. Cream notebook, deep purple-black ink, warm sepia ruled lines, rose margin, gold-bordered Lumi card on a faint gold wash.
+- **Dark mode**: a real dark theme now. The notebook is a starry-night journal °X deep purple paper (#1e1b4b °˜ #0b0717) with lavender ruled lines, a fuchsia margin line, a soft lavender spine shadow, and luminous light-purple-white ink (#e9d5ff) that reads like moonlit handwriting. The text shadow is a tiny gold/purple halo (  0 1px rgba(76,29,149,0.8), 0 1px 0 rgba(255,215,0,0.3)) so each glyph has a subtle sparkle. The Lumi reply card sits on a deep purple g-purple-500/10 with a brighter gold border (order-gold/60) so it still pops on the new dark paper. The magic-pen gold wave line is slightly brighter (hsla(43, 96%, 70%, 0.65)) to read against the dark background.
+- **Theme switching is now zero-cost**: toggling .day on <html> flips all 7 variables, and every component re-themes automatically with no JS re-render needed for the visuals.

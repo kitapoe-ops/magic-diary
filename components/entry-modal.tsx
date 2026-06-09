@@ -289,7 +289,7 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
               the old plain animate-pulse. */}
           {casting && (
             <div
-              className="relative mt-2 overflow-hidden rounded-2xl border-2 border-gold/40 bg-gold/5 px-4 py-3"
+              className="relative mt-2 overflow-hidden rounded-2xl border-2 border-gold/40 bg-gold/5 px-4 py-3 dark:border-gold/60 dark:bg-purple-500/10"
               role="status"
               aria-live="polite"
             >
@@ -376,7 +376,7 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
           )}
 
           {lumiReply && (
-            <div className="rounded-2xl border-2 border-gold/40 bg-gold/10 p-4">
+            <div className="rounded-2xl border-2 border-gold/40 bg-gold/10 p-4 dark:border-gold/60 dark:bg-purple-500/10">
               <div className="mb-2 flex items-center justify-between gap-2">
                 <p className="text-xs font-bold uppercase tracking-wide text-gold">
                   {t.modalLumiSays}
