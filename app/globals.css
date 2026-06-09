@@ -1,0 +1,194 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Starry night (default / dark magical mode) */
+    --background: 263 70% 8%;
+    --foreground: 258 90% 92%;
+
+    --card: 263 55% 16%;
+    --card-foreground: 258 90% 92%;
+
+    --popover: 263 60% 12%;
+    --popover-foreground: 258 90% 92%;
+
+    --primary: 263 69% 35%; /* deep purple #4C1D95 */
+    --primary-foreground: 258 100% 97%;
+
+    --secondary: 255 92% 76%; /* lavender #C4B5FD */
+    --secondary-foreground: 263 69% 20%;
+
+    --muted: 263 40% 22%;
+    --muted-foreground: 255 50% 78%;
+
+    --accent: 292 91% 83%; /* magical pink #F0ABFC */
+    --accent-foreground: 263 69% 20%;
+
+    --gold: 43 96% 56%; /* gold #FBBF24 */
+    --gold-foreground: 263 69% 18%;
+
+    --magic-pink: 292 91% 83%;
+
+    --destructive: 350 89% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 263 50% 35%;
+    --input: 263 45% 20%;
+    --ring: 43 96% 56%;
+
+    --radius: 1.25rem;
+  }
+
+  /* Soft lavender day mode */
+  .day {
+    --background: 270 60% 94%;
+    --foreground: 263 69% 25%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 263 69% 25%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 263 69% 25%;
+
+    --primary: 263 69% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 255 92% 86%;
+    --secondary-foreground: 263 69% 25%;
+
+    --muted: 270 50% 88%;
+    --muted-foreground: 263 30% 45%;
+
+    --accent: 292 80% 90%;
+    --accent-foreground: 263 69% 25%;
+
+    --gold: 38 92% 50%;
+    --gold-foreground: 0 0% 100%;
+
+    --magic-pink: 300 80% 70%;
+
+    --border: 263 50% 75%;
+    --input: 270 40% 90%;
+    --ring: 43 90% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply text-foreground font-sans;
+  }
+}
+
+/* Animated starry night background */
+.magic-bg {
+  background:
+    radial-gradient(circle at 20% 20%, hsla(292, 91%, 60%, 0.18), transparent 40%),
+    radial-gradient(circle at 80% 30%, hsla(263, 90%, 50%, 0.25), transparent 45%),
+    linear-gradient(160deg, #4c1d95 0%, #2e1065 35%, #1e1b4b 65%, #0b0717 100%);
+  background-size: 200% 200%;
+  animation: bgshift 18s ease infinite;
+}
+
+.day .magic-bg {
+  background:
+    radial-gradient(circle at 20% 20%, hsla(292, 91%, 85%, 0.6), transparent 45%),
+    radial-gradient(circle at 80% 25%, hsla(255, 92%, 88%, 0.7), transparent 45%),
+    linear-gradient(160deg, #ede9fe 0%, #ddd6fe 45%, #e9d5ff 100%);
+  animation: none;
+}
+
+@keyframes bgshift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Glassmorphism card */
+.glass-card {
+  background: hsla(263, 55%, 18%, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 2px solid hsla(263, 60%, 55%, 0.5);
+  box-shadow: 0 8px 32px hsla(263, 80%, 5%, 0.4);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.day .glass-card {
+  background: hsla(0, 0%, 100%, 0.75);
+  border: 2px solid hsla(263, 60%, 70%, 0.6);
+  box-shadow: 0 8px 32px hsla(263, 40%, 60%, 0.2);
+}
+
+.glass-card:hover {
+  transform: translateY(-6px);
+  border-color: hsl(var(--gold));
+  box-shadow: 0 12px 40px hsla(43, 96%, 56%, 0.3), 0 0 0 1px hsla(43, 96%, 56%, 0.4);
+}
+
+/* Gold glow utility */
+.gold-glow {
+  box-shadow: 0 0 16px hsla(43, 96%, 56%, 0.6);
+}
+
+.text-glow {
+  text-shadow: 0 0 12px hsla(43, 96%, 56%, 0.5);
+}
+
+/* Purple gradient title text */
+.gradient-title {
+  background: linear-gradient(90deg, #f0abfc, #c4b5fd, #fbbf24);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gold-gradient {
+  background: linear-gradient(135deg, #fde68a, #fbbf24, #f59e0b);
+}
+
+/* Larger emoji throughout */
+.emoji {
+  font-size: 1.2em;
+  line-height: 1;
+  display: inline-block;
+}
+
+/* Sparkle cursor trail dot */
+.cursor-sparkle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  font-size: 14px;
+  animation: sparkle-fade 0.9s ease-out forwards;
+}
+
+@keyframes sparkle-fade {
+  0% {
+    transform: scale(1) translate(-50%, -50%);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0) translate(-50%, -150%);
+    opacity: 0;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsla(263, 60%, 55%, 0.5);
+  border-radius: 999px;
+}
