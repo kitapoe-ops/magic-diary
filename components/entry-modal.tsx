@@ -14,7 +14,18 @@ import { MagicPenWriting } from "./magic-pen-writing"
 interface EntryModalProps {
   open: boolean
   onClose: () => void
-  onSave: (entry: Omit<DiaryEntry, "id" | "dateLabel" | "category">) => void
+  /**
+   * Save handler. The payload includes the optional Lumi reply fields
+   * (`lumiReply`, `lumiLanguage`) so the parent's persisted entry
+   * (localStorage) keeps Lumi's response across reloads. We
+   * `Pick<DiaryEntry, "lumiReply" | "lumiLanguage">` to widen the
+   * base `Omit<...>` type without losing type-safety on the rest of
+   * the payload.
+   */
+  onSave: (
+    entry: Omit<DiaryEntry, "id" | "dateLabel" | "category"> &
+      Pick<DiaryEntry, "lumiReply" | "lumiLanguage">,
+  ) => void
   initial?: DiaryEntry | null
 }
 
@@ -81,11 +92,20 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
     setCasting(true)
     chime(990)
     window.setTimeout(() => {
+      // Edit-mode: if the user did not summon Lumi again this session,
+      // keep whatever Lumi reply was already on the entry (initial).
+      // New-mode: persist whatever the user just summoned (or null).
+      const replyToSave = lumiReply ?? initial?.lumiReply ?? null
+      const langToSave = replyToSave
+        ? (lumiReply ? aiLang : initial?.lumiLanguage ?? null)
+        : null
       onSave({
         title: title.trim(),
         body: body.trim(),
         mood,
         stickers: selectedStickers.length ? selectedStickers : ["✨"],
+        lumiReply: replyToSave,
+        lumiLanguage: langToSave,
       })
       onClose()
     }, 700)

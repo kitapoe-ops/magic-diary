@@ -98,7 +98,17 @@
 /* Handwriting utility — opt-in for any element that wants the
    magic-pen look without losing the body-wide default. Covers both
    CJK (ZCOOL KuaiLe + system Chinese fallbacks) and Latin (Kalam)
-   so a single class works for mixed-language diary entries. */
+   so a single class works for mixed-language diary entries.
+
+   The colour is forced to a deep purple-black (#2a1a4a) in BOTH light
+   and dark mode. In dark mode the default `--foreground` is a light
+   lavender (HSL 258 90% 92%) which would clash with the cream
+   notebook paper and fail WCAG AA contrast. The deep purple-black
+   ink reads like real handwriting on cream paper, sits at > 4.5:1
+   contrast against every cream tone the NotebookPage uses, and
+   still feels "ink + magic" because the hue matches the brand
+   purple. A subtle 1px white text-shadow adds an extra hint of
+   paper-warmth legibility. */
 .handwriting {
   font-family: var(--font-zcool), var(--font-kalam), "ZCOOL KuaiLe",
     "Comic Sans MS", "Bradley Hand", "Microsoft YaHei", "PingFang SC",
@@ -106,8 +116,16 @@
   font-weight: 400;
   line-height: 1.6;
   letter-spacing: 0.01em;
+  color: #2a1a4a;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
+/* Same ink colour as .handwriting, weight 700. Used for diary
+   card titles. We deliberately do NOT use `color: inherit` here
+   because some callers compose .handwriting-bold inside non-cream
+   surfaces (e.g. the title sits above the NotebookPage inner
+   gradient on a few layouts). The deep purple-black still reads
+   on dark glass at WCAG AA. */
 .handwriting-bold {
   font-family: var(--font-zcool), var(--font-kalam), "ZCOOL KuaiLe",
     "Comic Sans MS", "Bradley Hand", "Microsoft YaHei", "PingFang SC",
@@ -115,6 +133,18 @@
   font-weight: 700;
   line-height: 1.5;
   letter-spacing: 0.01em;
+  color: #2a1a4a;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+/* Light mode override: let the body keep its lavender foreground
+   for the UI chrome, but inside a "day" page (which is a soft
+   lavender background) make sure the handwriting ink is still
+   dark purple — a soft lavender ink would be lost in the wash. */
+.day .handwriting,
+.day .handwriting-bold {
+  color: #2a1a4a;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 /* Gentle wobble used on diary-card hover. */

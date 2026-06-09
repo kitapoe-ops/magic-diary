@@ -55,6 +55,9 @@ export type Dict = {
   modalSummonLumi: string
   modalSummoningLumi: string
   modalLumiSays: string
+  // Card-level label for the persisted Lumi reply that renders under
+  // the diary card body. Bilingual heading in EN, single-line in zh.
+  lumiSays: string
   modalAiLanguage: string
   modalAiLanguageHint: string
   modalAiError: string
@@ -164,6 +167,7 @@ const en: Dict = {
   modalSummonLumi: "✨ Summon Princess Lumi",
   modalSummoningLumi: "🪄 Summoning Lumi...",
   modalLumiSays: "Princess Lumi says...",
+  lumiSays: "🪄 Princess Lumi says:",
   modalAiLanguage: "Reply language",
   modalAiLanguageHint: "Chinese / English",
   modalAiError: "Lumi couldn't reply right now — please try again 💜",
@@ -265,6 +269,7 @@ const zh: Dict = {
   modalSummonLumi: "✨ 召喚露米公主",
   modalSummoningLumi: "🪄 緊嚟緊嚟...",
   modalLumiSays: "露米公主話...",
+  lumiSays: "🪄 露米公主話：",
   modalAiLanguage: "AI 回覆語言",
   modalAiLanguageHint: "中文 / 英文",
   modalAiError: "露米依家覆唔到你，遲啲再試 💜",

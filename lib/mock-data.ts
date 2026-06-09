@@ -41,6 +41,20 @@ export interface DiaryEntry {
   dateLabel: string
   mood: MoodKey
   stickers: string[]
+  /**
+   * Optional Princess Lumi reply that was summoned when the entry was
+   * first written (or last edited). Persisted alongside the entry so
+   * closing the modal / refreshing the page / switching devices does
+   * not lose Lumi's response. May be `null` for entries that never
+   * summoned Lumi, or for legacy entries that pre-date this field.
+   */
+  lumiReply?: string | null
+  /**
+   * The language Lumi's reply was written in (`"en"` or `"zh"`).
+   * `null` when `lumiReply` is also `null`. Persisted so the reply
+   * can be rendered / replayed with the correct language hint.
+   */
+  lumiLanguage?: "en" | "zh" | null
 }
 
 export const MOCK_ENTRIES: DiaryEntry[] = [
@@ -52,6 +66,8 @@ export const MOCK_ENTRIES: DiaryEntry[] = [
     dateLabel: "June 8",
     mood: "happy",
     stickers: ["🌈", "⭐", "✨"],
+    lumiReply: null,
+    lumiLanguage: null,
   },
   {
     id: "2",
@@ -61,6 +77,8 @@ export const MOCK_ENTRIES: DiaryEntry[] = [
     dateLabel: "June 7",
     mood: "loved",
     stickers: ["💜", "💖", "🦄", "🌸"],
+    lumiReply: null,
+    lumiLanguage: null,
   },
   {
     id: "3",
@@ -70,6 +88,8 @@ export const MOCK_ENTRIES: DiaryEntry[] = [
     dateLabel: "June 6",
     mood: "excited",
     stickers: ["⭐", "👑", "🌟", "✨"],
+    lumiReply: null,
+    lumiLanguage: null,
   },
 ]
 

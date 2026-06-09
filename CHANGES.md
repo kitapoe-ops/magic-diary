@@ -357,3 +357,134 @@ Dev server: `Ready in 1378ms` on `http://localhost:3003` (ports 3000-3002 occupi
 - **Diary card on the feed:** Glassmorphism card (purple border + gold-glow hover + mood emoji + sticker row + date badge) with a cream "lined page" tucked inside it. The title uses the gold-purple gradient, the body is in dark sepia on cream paper, every baseline sits on a horizontal rule, the left edge has a rose-pink margin line and a soft purple spine shadow.
 - **Lumi reply in the entry modal:** Gold-bordered card now wraps a cream notebook page; Lumi's handwriting is animated by the pen, character-by-character, and the spark burst pops from the baseline of the last character. Replay button still works.
 - **CJK + Latin mixing:** A diary that mixes "‰ªäÂ§© learn'd a new spell" now renders the Chinese in a playful round-script (webfont where cached, system CJK fallback otherwise) and the Latin in Kalam ‚Äî both sharing the same handwriting class. Body text colour is sepia on cream, so it reads as ink-on-paper.
+
+---
+
+## Iteration 4 ??Lumi Persistence + Dark Mode Ink Contrast
+
+> Sub-agent run, completed on Windows, branch = `master`, build target = `pnpm build` (Next.js 14.2.16). 2 issues addressed (Lumi reply never persisted to the diary; handwriting text was unreadable in dark mode on the cream notebook paper). `pnpm build` returns 0; `npx tsc --noEmit` returns 0; dev server starts in ~1.2s, page returns HTTP 200 (40 KB of HTML) with no runtime errors. No new dependencies. `git status` clean.
+
+### Issue 1 ??Lumi's reply was lost as soon as the modal closed
+
+**Root cause:** `components/entry-modal.tsx`'s `handleSubmit` only ever passed `{ title, body, mood, stickers }` into `onSave`. Lumi's reply was held in component-local state (`lumiReply`) and was gone the moment the modal closed, the page refreshed, or the user switched devices. The persisted `DiaryEntry` shape in `lib/mock-data.ts` didn't even have a slot for it.
+
+**Fix:**
+
+#### A. `lib/mock-data.ts` ??extend the entry shape
+
+- Added two optional fields to `DiaryEntry`:
+  ```ts
+  lumiReply?: string | null         // Princess Lumi's reply text (null if never summoned)
+  lumiLanguage?: "en" | "zh" | null // which language Lumi replied in
+  ```
+- Both are optional + nullable so legacy entries (pre-419d463) keep working without a migration. `?? null` in the feed handles the migration.
+- All 3 `MOCK_ENTRIES` are explicitly set to `lumiReply: null, lumiLanguage: null` so the demo dataset is self-documenting.
+
+#### B. `components/entry-modal.tsx` ??actually save Lumi
+
+- Widened the `onSave` prop type with `Pick<DiaryEntry, "lumiReply" | "lumiLanguage">` so the type system enforces that Lumi fields are part of the persisted payload.
+- In `handleSubmit`, after the 700ms casting animation, we now compute:
+  ```ts
+  const replyToSave = lumiReply ?? initial?.lumiReply ?? null
+  const langToSave = replyToSave
+    ? (lumiReply ? aiLang : initial?.lumiLanguage ?? null)
+    : null
+  onSave({ title, body, mood, stickers, lumiReply: replyToSave, lumiLanguage: langToSave })
+  ```
+  This means:
+  - **New entry:** whatever Lumi said this session (or `null` if user skipped her) is persisted.
+  - **Edit mode:** if the user edits but does NOT re-summon Lumi, the previous reply is preserved (no wiping). If they DO re-summon, the new reply + language overwrite the old ones.
+
+#### C. `components/diary-feed.tsx` ??defensive loader
+
+- `loadEntries()` now parses with `Partial<DiaryEntry>` and **normalizes every field** so any older or partial localStorage payload is upgraded to the new shape in-place:
+  ```ts
+  return parsed.map((e) => ({
+    id: e.id ?? String(Date.now()),
+    title: e.title ?? "",
+    body: e.body ?? "",
+    category: e.category ?? "Diary",
+    dateLabel: e.dateLabel ?? "Today",
+    mood: (e.mood ?? "happy") as DiaryEntry["mood"],
+    stickers: Array.isArray(e.stickers) ? e.stickers : [],
+    lumiReply: e.lumiReply ?? null,
+    lumiLanguage: e.lumiLanguage ?? null,
+  }))
+  ```
+- `handleSave` signature matches the modal's new `Pick<>`-widened type.
+- The `magic:reset-entries` reset path uses `MOCK_ENTRIES` (which now has `lumiReply: null` on every demo entry) so the reset button is consistent.
+
+#### D. `components/diary-card.tsx` ??render the persisted reply
+
+- Added a conditional block right after `</NotebookPage>`:
+  ```tsx
+  {entry.lumiReply && (
+    <div className="mt-3 rounded-2xl border-2 border-gold/40 bg-gold/5 p-3" role="note" aria-label={t.lumiSays}>
+      <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-gold">{t.lumiSays}</p>
+      <p className="handwriting text-sm leading-relaxed" style={{ color: "#2a1a4a" }}>{entry.lumiReply}</p>
+    </div>
+  )}
+  ```
+- **No extra notebook page** ??the reply sits in a small gold-bordered card, so the main diary page is the only one with ruled lines + red margin (otherwise the card would look like two notebooks stacked).
+- The label `t.lumiSays` is a new bilingual i18n key (en: "?? Princess Lumi says:" / zh: "?? ?≤Á±≥?¨‰∏ªË©±Ô?") added to `lib/i18n.ts` (both the `Dict` type and the `en`/`zh` dictionaries).
+- Inline `style={{ color: "#2a1a4a" }}` is the belt-and-braces override so the reply text is guaranteed to be the same deep purple-black ink as the diary body, regardless of any parent utility.
+
+### Issue 2 ??Handwriting text was unreadable in dark mode
+
+**Root cause:** `.handwriting` and the body cascade inherited `--foreground`, which in dark mode is `HSL 258 90% 92%` (a soft lavender-white). That colour is fine on the deep purple background, but the diary body now lives on a **cream** `NotebookPage` (variants `diary` / `reply` use cream gradients like `#fdf6e3` ??`#f3e9c8`). Light lavender text on cream paper is essentially invisible ??well below the 4.5:1 WCAG AA contrast ratio.
+
+**Fix:**
+
+#### A. `app/globals.css` ??force deep purple-black ink on handwriting
+
+- `.handwriting` and `.handwriting-bold` both now hard-code `color: #2a1a4a` (deep purple-black ??same hue as the brand purple, but darkened to ink territory) and a soft 1px white `text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4)` for an extra paper-warmth legibility boost.
+- Added `.day .handwriting, .day .handwriting-bold { color: #2a1a4a }` so day mode (soft lavender bg) also gets a high-contrast ink ??a soft lavender ink on lavender paper would be lost in the wash.
+- **Contrast check** (`#2a1a4a` ??L 0.020 vs the lightest cream `#fdf6e3` ??L 0.92): **13.9:1** ??well above WCAG AA 4.5:1 and AAA 7:1. Deepest cream tone `#f3e9c8` still gives ??12.5:1.
+- The deep purple-black hue is a deliberate design choice ??it matches the magic-purple brand and reads as "ink on paper" rather than a foreign black blob.
+
+#### B. `components/diary-card.tsx` ??inline `style` belt-and-braces
+
+- The body `<p>` now has `style={{ color: "#2a1a4a" }}` inline, in addition to the `.handwriting` class. The inline style is the **last word** in the cascade, so even if a future parent utility or `:where()` rule tried to soften the colour, the ink wins.
+- Same inline `style` on the new Lumi reply block.
+
+### File-level summary
+
+| File | Type | Lines (now) | What |
+|------|------|------------:|------|
+| `lib/mock-data.ts` | edit | 115 (+12) | `DiaryEntry` adds `lumiReply` + `lumiLanguage`; 3 demo entries explicitly `null`-tagged |
+| `lib/i18n.ts` | edit | 338 (+6) | `Dict` type adds `lumiSays`; en + zh dicts add bilingual heading |
+| `components/entry-modal.tsx` | edit | 416 (+~25) | `onSave` widened with `Pick<>`; `handleSubmit` persists Lumi fields (new + edit modes) |
+| `components/diary-feed.tsx` | edit | 185 (+~20) | `loadEntries` defensive normalization; `handleSave` signature matches modal |
+| `components/diary-card.tsx` | edit | 180 (+~30) | Renders persisted Lumi reply in gold-bordered card; inline ink-color override on body + reply |
+| `app/globals.css` | edit | 362 (+~25) | `.handwriting` / `.handwriting-bold` forced `#2a1a4a` ink + paper-warmth text-shadow; `.day` override |
+
+### Hard-constraint check (Iteration 4)
+
+1. **No new dependencies** ??`pnpm-lock.yaml` and `package.json` byte-identical to `419d463`. All changes are CSS / TS / TSX.
+2. **TypeScript-strict, all new code type-safe** ??`npx tsc --noEmit` returns 0. The new `Pick<DiaryEntry, "lumiReply" | "lumiLanguage">` in both `EntryModalProps.onSave` and `DiaryFeed.handleSave` keeps the payload type-checked; `loadEntries` normalizes with `as DiaryEntry["mood"]` cast for the legacy mood field.
+3. **Design language preserved** ??purple + gold + emoji + glassmorphism unchanged. The new Lumi reply card uses `border-gold/40` + `bg-gold/5` (consistent with the existing modal Lumi panel); the ink colour matches the brand purple.
+4. **All paths absolute** ??`C:\Users\kitap\.openclaw\workspace\magic-diary-work\`.
+5. **`pnpm build` green** ??exit 0, 5/5 static pages prerendered, `/api/magic-reply` still dynamic. First Load JS 126 kB (unchanged from iteration 3; no new chunks).
+6. **Old entries don't break** ??`loadEntries` defensively normalizes every field with `??` defaults. Even a totally empty `{}` localStorage value would render as 3 demo entries (the array-empty branch falls back to `MOCK_ENTRIES`).
+7. **WCAG AA dark-mode contrast** ??`#2a1a4a` on cream `#fdf6e3` = 13.9:1 (passes AAA 7:1). Same colour on the deepest cream `#f3e9c8` ??12.5:1. `MagicPenWriting` and the casting line both inherit `.handwriting`, so they automatically pick up the new ink.
+8. **Lumi reply actually persists** ??`handleSubmit` writes `lumiReply` + `lumiLanguage` into the `onSave` payload; `DiaryFeed` writes that to `localStorage` via the existing `useEffect([entries])`; on reload, `loadEntries` normalizes and the card renders the reply.
+9. **No API tokens committed** ??git diff for `.env*` and any token-shaped string is empty; DeepSeek token still flows through `localStorage` + `x-deepseek-token` header (unchanged).
+
+### Build output
+
+```
+Route (app)                              Size     First Load JS
+?å‚? /                                    7.78 kB         126 kB
+?ú‚? /_not-found                          870 B            88 kB
+?ú‚? /achievements                        1.86 kB         120 kB
+?î‚? /api/magic-reply                     0 B                0 B  (Dynamic)
++ First Load JS shared by all            87.1 kB
+```
+
+Dev server: `Ready in 1243ms` on `http://localhost:3005` (ports 3000-3004 occupied by other OpenClaw dev servers). `GET /` returned HTTP 200 (40160 bytes) after the first-compile warm-up. Killed after smoke test.
+
+### Visual / UX summary
+
+- **A diary card on the feed** now has, top to bottom: glassmorphism frame (purple border + gold-glow hover) ??date badge + mood emoji + edit/delete buttons ??category chip ??**cream notebook page** (title in gold-purple gradient, body in deep purple-black Kalam / ZCOOL KuaiLe on cream paper, ruled lines + red margin) ??**gold-bordered Lumi card** (only if the user summoned Lumi for this entry) ??sticker row.
+- **Editing a previous entry** preserves Lumi's reply by default. To replace it, the user re-summons Lumi in the modal and the new reply overwrites. To wipe it, the user can clear the reply in the modal (a small UX add ??out of scope for this iteration; the brief said "‰øùÁ??üÊ? lumiReply" which is what we ship).
+- **Dark mode** now reads like ink on cream paper, not lavender on lavender. Same deep purple-black ink in day mode, so the notebook feels like a real journal under both themes.

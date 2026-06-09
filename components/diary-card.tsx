@@ -106,15 +106,51 @@ export function DiaryCard({ entry, onEdit, onDelete }: DiaryCardProps) {
       {/* Title + body share a single "notebook page" so the cream paper
           is a single visual element. Mood + category + stickers stay
           on the outer glassmorphism card so the magic-theme purple +
-          gold + emoji decorations still pop on the dark glass. */}
+          gold + emoji decorations still pop on the dark glass.
+
+          The body uses an inline `style={{ color: "#2a1a4a" }}`
+          (deep purple-black ink) so it always reads on cream paper
+          regardless of the active theme. The same colour is also
+          enforced in `.handwriting` in `globals.css` (WCAG AA > 4.5:1
+          on the cream gradient). The inline style is the final
+          override so parent utilities like `text-secondary/90` cannot
+          accidentally soften the ink. */}
       <NotebookPage variant="diary" className="mb-1">
         <h3 className="handwriting-bold gradient-title mb-2 text-pretty text-2xl leading-8">
           {entry.title}
         </h3>
-        <p className="handwriting text-pretty leading-8 text-[#3a2a14]/90 dark:text-[#3a2a14]">
+        <p
+          className="handwriting text-pretty leading-8"
+          style={{ color: "#2a1a4a" }}
+        >
           {entry.body}
         </p>
       </NotebookPage>
+
+      {/* Persisted Lumi reply (from entry-modal's "Summon Princess Lumi"
+          action). Only renders when an entry actually has a reply
+          persisted; legacy entries (no field) and entries that never
+          summoned Lumi simply skip this block. Bilingual header via
+          the `lumiSays` i18n key. The colour is the same deep
+          purple-black ink as the diary body so the whole page reads
+          like one notebook. */}
+      {entry.lumiReply && (
+        <div
+          className="mt-3 rounded-2xl border-2 border-gold/40 bg-gold/5 p-3"
+          role="note"
+          aria-label={t.lumiSays}
+        >
+          <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-gold">
+            {t.lumiSays}
+          </p>
+          <p
+            className="handwriting text-sm leading-relaxed"
+            style={{ color: "#2a1a4a" }}
+          >
+            {entry.lumiReply}
+          </p>
+        </div>
+      )}
 
       {/* sticker row */}
       <div className={cn("mt-4 flex items-center gap-2")}>

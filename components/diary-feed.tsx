@@ -19,9 +19,23 @@ function loadEntries(): DiaryEntry[] {
   try {
     const raw = window.localStorage.getItem(ENTRIES_STORAGE_KEY)
     if (!raw) return MOCK_ENTRIES
-    const parsed = JSON.parse(raw) as DiaryEntry[]
+    const parsed = JSON.parse(raw) as Array<Partial<DiaryEntry>>
     if (!Array.isArray(parsed)) return MOCK_ENTRIES
-    return parsed
+    // Migration: older entries written before Lumi persistence shipped
+    // (commit <419d463) won't have `lumiReply` / `lumiLanguage`. Fill
+    // them in with `null` so downstream code (diary-card) can render
+    // the optional Lumi panel without crashing on `undefined`.
+    return parsed.map((e) => ({
+      id: e.id ?? String(Date.now()),
+      title: e.title ?? "",
+      body: e.body ?? "",
+      category: e.category ?? "Diary",
+      dateLabel: e.dateLabel ?? "Today",
+      mood: (e.mood ?? "happy") as DiaryEntry["mood"],
+      stickers: Array.isArray(e.stickers) ? e.stickers : [],
+      lumiReply: e.lumiReply ?? null,
+      lumiLanguage: e.lumiLanguage ?? null,
+    }))
   } catch {
     return MOCK_ENTRIES
   }
@@ -56,7 +70,10 @@ export function DiaryFeed() {
     return () => window.removeEventListener("magic:reset-entries", onReset)
   }, [showToast])
 
-  function handleSave(data: Omit<DiaryEntry, "id" | "dateLabel" | "category">) {
+  function handleSave(
+    data: Omit<DiaryEntry, "id" | "dateLabel" | "category"> &
+      Pick<DiaryEntry, "lumiReply" | "lumiLanguage">,
+  ) {
     if (editing) {
       setEntries((prev) =>
         prev.map((e) => (e.id === editing.id ? { ...e, ...data } : e)),
