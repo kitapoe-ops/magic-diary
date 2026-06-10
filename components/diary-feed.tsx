@@ -83,15 +83,13 @@ export function DiaryFeed() {
   const [entries, setEntries] = useState<DiaryEntry[]>(MOCK_ENTRIES)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<DiaryEntry | null>(null)
-  // Iteration 6 (Bug 5): the right page of the book-spread now
-  // uses a 3D-flip <PageTurn> for the past-entry feed. The
-  // current page index is owned here (parent state) so the
-  // <BookSpread> can keep its left=editor / right=paged-feed
-  // contract. `direction` is used to drive the flip axis
-  // (forward = page leaves to the left, backward = to the
-  // right).
-  const [currentPage, setCurrentPage] = useState(0)
-  const [flipDirection, setFlipDirection] = useState<1 | -1>(1)
+  // Iteration 7 (Issue 2): the right page of the book-spread
+  // now uses a real-book <PageTurn> for the past-entry feed.
+  // The current spread index is owned here (parent state) so
+  // the <BookSpread> can keep its left=editor / right=paged-feed
+  // contract. The PageTurn component itself manages the
+  // mid-animation `animating` flag internally.
+  const [currentSpread, setCurrentSpread] = useState(0)
   const moodRef = useRef<HTMLDivElement>(null)
 
   // Hydrate from localStorage after mount to keep SSR markup stable.
@@ -109,16 +107,15 @@ export function DiaryFeed() {
   useEffect(() => {
     function onReset() {
       setEntries(MOCK_ENTRIES)
-      setCurrentPage(0)
+      setCurrentSpread(0)
       showToast("✨ Demo data restored.")
     }
     window.addEventListener("magic:reset-entries", onReset)
     return () => window.removeEventListener("magic:reset-entries", onReset)
   }, [showToast])
 
-  function handlePageChange(next: number) {
-    setFlipDirection(next > currentPage ? 1 : -1)
-    setCurrentPage(next)
+  function handleSpreadChange(next: number) {
+    setCurrentSpread(next)
   }
 
   function handleSave(
@@ -219,10 +216,10 @@ export function DiaryFeed() {
                 image01-generated placeholders so the editor
                 shows real images from the start. */}
             <div className="mt-2 flex flex-wrap items-end gap-3">
-              <PhotoSlot kind="square-stamp" compact url="/images/quill-slots/square-hat.jpg" onClick={openNew} />
-              <PhotoSlot kind="landscape-4x3" compact url="/images/quill-slots/landscape-broom.jpg" onClick={openNew} />
-              <PhotoSlot kind="portrait-3x4" compact url="/images/quill-slots/portrait-wand.jpg" onClick={openNew} />
-              <PhotoSlot kind="wide-banner" compact url="/images/quill-slots/banner-owl.jpg" onClick={openNew} />
+              <PhotoSlot kind="square-stamp" compact variant="subtle" url="/images/quill-slots/square-hat.jpg" onClick={openNew} />
+              <PhotoSlot kind="landscape-4x3" compact variant="subtle" url="/images/quill-slots/landscape-broom.jpg" onClick={openNew} />
+              <PhotoSlot kind="portrait-3x4" compact variant="subtle" url="/images/quill-slots/portrait-wand.jpg" onClick={openNew} />
+              <PhotoSlot kind="wide-banner" compact variant="subtle" url="/images/quill-slots/banner-owl.jpg" onClick={openNew} />
             </div>
             <PageCorner position="top-left" tone="leather" inline />
             <PageCorner position="bottom-right" tone="leather" inline />
@@ -244,9 +241,8 @@ export function DiaryFeed() {
             ) : (
               <PageTurn
                 entries={entries}
-                currentPage={currentPage}
-                onPageChange={handlePageChange}
-                direction={flipDirection}
+                currentSpread={currentSpread}
+                onSpreadChange={handleSpreadChange}
                 onEdit={openEdit}
                 onDelete={handleDelete}
               />
@@ -257,7 +253,7 @@ export function DiaryFeed() {
           </div>
         }
         leftPageNumber="I"
-        rightPageNumber={toRoman(currentPage + 2)}
+        rightPageNumber={toRoman(currentSpread * 2 + 2)}
         spineLabel={<BookSpineLabel title="Lumi's Diary" anno="Anno MMXXVI" />}
         spineTone="leather"
       />

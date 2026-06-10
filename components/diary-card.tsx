@@ -101,12 +101,16 @@ export function DiaryCard({ entry, pageLabel, onEdit, onDelete }: DiaryCardProps
         </p>
       </NotebookPage>
 
-      {/* Photo slots — render one PhotoSlot per persisted photo,
-          or just show the empty placeholder for any slot the user
-          has not yet filled (only when photos array is empty
-          entirely do we show nothing). We always render the
-          photos array as-is to avoid eating the layout budget
-          for placeholders the user might not want. */}
+      {/* Photo slots — Iteration 7 (Issue 1): each photo is
+          rendered as a SUBTLE background image on the slot
+          itself (parchment overlay on top) instead of an
+          inline <img>. The result is a watermark-style
+          treatment: the photo is a faint memory embedded in
+          the diary page, and the entry text + Lumi reply float
+          above it. The W×H label is preserved in the top-left
+          corner so the photo-slot size contract from
+          Iterations 4-6 is unbroken. We use variant="subtle"
+          (75% parchment overlay) per user OK'd default. */}
       {entry.photos && entry.photos.length > 0 && (
         <div className="mb-3 flex flex-wrap items-end gap-3">
           {entry.photos.map((photo, i) => (
@@ -115,6 +119,7 @@ export function DiaryCard({ entry, pageLabel, onEdit, onDelete }: DiaryCardProps
               kind={photo.slot}
               url={photo.url}
               compact
+              variant="subtle"
             />
           ))}
         </div>

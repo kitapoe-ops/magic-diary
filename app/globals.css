@@ -650,12 +650,21 @@
    class list above. */
 
 /* =====================================================================
-   Iteration 6 — Page-turn 3D + parchment
+   Iteration 6 + 7 — Page-turn 3D + parchment
    =====================================================================
    Tailwind 3.4 ships with `perspective-*` utilities out of the box,
    but we expose a couple of helpers the PageTurn component needs
    that aren't covered by utility classes (transform-style: preserve-3d
-   and backface-visibility). */
+   and backface-visibility).
+
+   Iteration 7 (Issue 2): the page-turn is now a real book spread.
+   The .page-turn-stage keeps its perspective. The .book-stage is
+   the inner stack of spreads; .book-spread-flipper is each spread
+   (positioned absolutely with z-index set inline by the
+   component). The right page of the mini-book is the leaf that
+   flips, with `transform-origin: left center` set inline so the
+   rotation pivots from the spine. The CSS below just ensures
+   the 3D context is correct. */
 
 /* The page-turn container. Sets up the 3D camera so child
    `rotateY` flips actually feel like a real book page. */
@@ -664,74 +673,40 @@
   perspective-origin: 50% 50%;
 }
 
-/* Each individual page needs `transform-style: preserve-3d` for
-   its `rotateY` to be visible in 3D space, plus
-   `backface-visibility: hidden` so the back of the page is
-   invisible during the flip.
+/* Each book spread needs `transform-style: preserve-3d` so its
+   child right page can rotate in 3D. The component handles
+   z-index and visibility inline; we just give it the 3D
+   context. */
+.book-spread-flipper {
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+}
 
-   Iteration 6: state machine driven by data-state attribute.
-   The PageTurn component sets `is-active`, `is-entering`, or
-   `is-exiting` (and a `data-dir` of `fwd` / `bwd` for the
-   rotation direction). Pure CSS transitions handle the
-   animation, so we don't need framer-motion. */
-.page-turn-leaf {
+/* The right page of the mini-book is the leaf that flips.
+   `transform-origin: left center` is set inline (so each
+   right page pivots from the spine — its own left edge).
+   `backface-visibility: hidden` ensures the back of the
+   rotating page is invisible during the flip, so the spread
+   underneath is revealed at the 90deg mark. The transition
+   is also set inline (800ms cubic-bezier) so the rotation
+   animation matches the JS state machine. */
+.book-page-right {
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1),
-    opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform, opacity;
-}
-
-/* Default resting state (active page is fully visible, no
-   rotation). */
-.page-turn-leaf.is-active {
-  transform: rotateY(0) translateZ(0);
-  opacity: 1;
-  position: relative;
-  z-index: 2;
-}
-
-/* Entering: starts off-screen rotated 90° on whichever side
-   the user is flipping from, then transitions to `is-active`
-   (the transition above handles it). */
-.page-turn-leaf.is-entering.flip-forward {
-  transform: rotateY(90deg) translateZ(0) translateX(40px);
-  opacity: 0;
-  z-index: 3;
-}
-
-.page-turn-leaf.is-entering.flip-backward {
-  transform: rotateY(-90deg) translateZ(0) translateX(-40px);
-  opacity: 0;
-  z-index: 3;
-}
-
-/* Exiting: starts at the active state, then rotates 90° away
-   from the side the new page is coming from, fades out. */
-.page-turn-leaf.is-exiting.flip-forward {
-  transform: rotateY(-90deg) translateZ(0) translateX(-40px);
-  opacity: 0;
-  z-index: 1;
-}
-
-.page-turn-leaf.is-exiting.flip-backward {
-  transform: rotateY(90deg) translateZ(0) translateX(40px);
-  opacity: 0;
-  z-index: 1;
+  will-change: transform;
 }
 
 /* Reduced motion: skip the 3D flip entirely. Pages just fade
    in/out so users with vestibular sensitivity still get
    usable navigation. */
 @media (prefers-reduced-motion: reduce) {
-  .page-turn-leaf {
-    transition: opacity 0.2s linear;
+  .book-page-right {
+    transition: opacity 0.2s linear !important;
+    transform: none !important;
+  }
+  .book-spread-flipper {
     transform: none !important;
   }
 }
@@ -775,4 +750,79 @@
   background-clip: text;
   color: transparent;
 }
+
+/* =====================================================================
+   Iteration 7 — Photo-slot background overlay + mini-book spine
+   =====================================================================
+   The <PhotoSlot> in Iter 7 renders the photo as a background-image
+   with a parchment (or leather-night) overlay on top. The opacity
+   is set inline by the component; we only set the COLOUR here so
+   it flips correctly between day and night mode.
+
+   The overlay colour is intentionally cream/parchment in light
+   mode (so the photo looks like a faint watermark on a tan page)
+   and deep leather-night in dark mode (so the photo ghosts into
+   a starry night journal). The opacity (0.75 default = "subtle")
+   is multiplied by the alpha of this colour; the photo's
+   `background-blend-mode` (where supported) is left to the
+   default so colours look natural. */
+
+.photo-slot-overlay {
+  background-color: rgb(244, 233, 200); /* parchment cream */
+  mix-blend-mode: multiply;
+}
+
+:is(.dark, :not(.day)) .photo-slot-overlay {
+  background-color: rgb(26, 15, 10); /* leather-night */
+  mix-blend-mode: normal;
+}
+
+/* Mini-book spine — a thin vertical line down the center of
+   the right pane. Drawn as a 2px gold-tinted shadow with a
+   hairline dark center, so the eye reads it as a binding
+   crease between two pages. */
+.book-mini-spine {
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(26, 15, 10, 0.45) 12%,
+    rgba(26, 15, 10, 0.6) 50%,
+    rgba(26, 15, 10, 0.45) 88%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  width: 3px !important;
+  filter: drop-shadow(0 0 1px rgba(212, 165, 116, 0.4));
+}
+
+:is(.dark, :not(.day)) .book-mini-spine {
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.7) 12%,
+    rgba(0, 0, 0, 0.85) 50%,
+    rgba(0, 0, 0, 0.7) 88%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  filter: drop-shadow(0 0 1px rgba(212, 165, 116, 0.3));
+}
+
+/* Parchment page — the right-pane "paper" surface that hosts
+   the DiaryCard. The DiaryCard's own background is slightly
+   darker; the parchment-page wrapper just adds a subtle inner
+   shadow so the right page reads as a slightly raised paper
+   sheet inside the book. */
+.parchment-page {
+  background-color: transparent; /* let the BookSpread's
+                                   notebook-paper show through */
+}
+
+.book-page-left {
+  /* Inset shadow on the right edge = gutter into the spine. */
+  box-shadow: inset -8px 0 12px -6px rgba(0, 0, 0, 0.25);
+}
+
+:is(.dark, :not(.day)) .book-page-left {
+  box-shadow: inset -8px 0 12px -6px rgba(0, 0, 0, 0.55);
+}
+
 

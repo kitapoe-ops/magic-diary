@@ -59,3 +59,12 @@ export interface DiaryPhoto {
   /** Which slot preset this photo was placed in. */
   slot: PhotoSlotKind
 }
+
+/**
+ * Iteration 7: re-export of the PhotoSlotVariant type so
+ * downstream files (entry-modal, diary-card) can import the
+ * opacity options from `@/lib/photo-sizes` instead of the
+ * component module. Keeps the type next to the size
+ * constants.
+ */
+export type { PhotoSlotVariant } from "@/components/photo-slot"

@@ -404,17 +404,12 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
                 return (
                   <div key={kind} className="flex flex-col items-center gap-1">
                     {attached ? (
-                      <div className="relative">
-                        <PhotoSlot kind={kind} url={attached.url} />
-                        <button
-                          type="button"
-                          onClick={() => removePhoto(kind)}
-                          className="absolute -right-2 -top-2 rounded-full border border-destructive/50 bg-destructive/20 p-1 text-destructive hover:bg-destructive/40"
-                          aria-label="Remove photo"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
+                      <PhotoSlot
+                        kind={kind}
+                        url={attached.url}
+                        variant="medium"
+                        onRemove={() => removePhoto(kind)}
+                      />
                     ) : (
                       <PhotoSlot kind={kind} onClick={() => pickPhotoFile(kind)} />
                     )}
