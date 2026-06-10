@@ -106,9 +106,9 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${quicksand.variable} ${pacifico.variable} ${kalam.variable} ${zcool.variable} ${cinzel.variable} ${crimson.variable} ${caveat.variable} ${xiaowei.variable} ${mashanzheng.variable} dark:bg-leather-night bg-parchment`}
+      className={`${quicksand.variable} ${pacifico.variable} ${kalam.variable} ${zcool.variable} ${cinzel.variable} ${crimson.variable} ${caveat.variable} ${xiaowei.variable} ${mashanzheng.variable}`}
     >
-      <body className="font-sans antialiased dark:bg-leather-night dark:text-gold bg-parchment text-leather-deep min-h-screen">
+      <body className="font-sans antialiased text-leather-deep min-h-screen">
         {children}
       </body>
     </html>

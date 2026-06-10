@@ -93,12 +93,17 @@ export function DiaryFeed() {
    * values; we stamp an id + dateLabel and prepend to the
    * feed. The page-turn then animates to the new first
    * entry's spread on the next render.
+   *
+   * Iteration 9: also accept `lumiReply` / `lumiLanguage` so
+   * an in-page "Ask Lumi" reply persists with the entry.
    */
   function handleInPageSave(values: {
     title: string
     body: string
     mood: DiaryEntry["mood"]
     stickers: string[]
+    lumiReply?: string | null
+    lumiLanguage?: "en" | "zh" | null
   }) {
     const newEntry: DiaryEntry = {
       id: String(Date.now()),
@@ -108,8 +113,8 @@ export function DiaryFeed() {
       body: values.body,
       mood: values.mood,
       stickers: values.stickers,
-      lumiReply: null,
-      lumiLanguage: null,
+      lumiReply: values.lumiReply ?? null,
+      lumiLanguage: values.lumiLanguage ?? null,
     }
     setEntries((prev) => [newEntry, ...prev])
     showToast(t.toastSaved)
@@ -131,17 +136,12 @@ export function DiaryFeed() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="text-center">
-        <h2 className="font-cinzel text-3xl font-bold tracking-widest text-leather-deep dark:text-gold">
-          <span className="mr-1">📖</span>
-          {t.feedHeading}
-          <span className="ml-1">📖</span>
-        </h2>
-        <p className="mt-1 text-sm italic text-leather/70 dark:text-gold/70 font-crimson">
-          {t.feedSubheading}
-        </p>
-      </div>
+    <div className="flex flex-col gap-6 p-4 md:p-6">
+      {/* Iteration 9: removed the big "My Magical Diary"
+          heading. The thin top-bar header already shows the
+          app title; having both felt redundant and broke the
+          "whole page is a book" feel. We jump straight into
+          the page-turn. */}
 
       {/* Iteration 8: the entire book is the <PageTurn>.
           No more BookSpread wrapper around the diary — the

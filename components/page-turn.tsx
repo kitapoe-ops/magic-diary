@@ -1,53 +1,35 @@
 "use client"
 
 /**
- * PageTurn — Iteration 8 (Issue 1)
- * ---------------------------------
- * Pure page-turn reading: 2 pages per spread. The LAST spread
- * is special:
- *   • entries.length is odd  → right page is the editor
- *   • entries.length is even → a NEW spread with full editor
- *   • entries is empty       → the only spread is full editor
+ * PageTurn — Iteration 9 (Issues 1, 2)
+ * ------------------------------------
+ * Mobile vs Desktop split + full-screen book feeling.
+ *
+ * Mobile (< md / 768px): simple vertical list of cards. No
+ *   3D flip, no Perspective, no click zones — just a flex
+ *   column with each entry as a full-width card. The in-page
+ *   editor sits at the bottom (so the user can write a new
+ *   entry from the same scrollable surface).
+ *
+ * Desktop (≥ md / 768px): full 3D page-turn. The Perspective
+ *   is now 1500px (was 1200px) for a stronger 3D effect, and
+ *   there's a clear "← Previous / Spread N of M / Next →" nav
+ *   bar at the bottom (always visible, not just on hover).
+ *   The right page also has a stronger drop-shadow so the
+ *   spine looks like the page is being lifted from the
+ *   binding.
+ *
+ * The spread-mapping (2 pages per spread, editor on the last
+ * empty spread) is unchanged from Iteration 8.
  *
  * Spread mapping (3 entries — the user-specified scenario):
  *
  *   Spread 1: Entry 1 (left, "I")  | Entry 2 (right, "II")
  *   Spread 2: Entry 3 (left, "III")| Editor (right, "Begin a fresh page...")
  *
- * Spread mapping (4 entries):
- *
- *   Spread 1: Entry 1 (left, "I")   | Entry 2 (right, "II")
- *   Spread 2: Entry 3 (left, "III") | Entry 4 (right, "IV")
- *   Spread 3: Editor (full spread)            ← "Begin a fresh page..."
- *
- * Spread mapping (5 entries):
- *
- *   Spread 1: Entry 1 (left, "I")   | Entry 2 (right, "II")
- *   Spread 2: Entry 3 (left, "III") | Entry 4 (right, "IV")
- *   Spread 3: Entry 5 (left, "V")   | Editor (right, "Begin a fresh page...")
- *
  * Spread mapping (0 entries):
  *
  *   Spread 1: Editor (full spread)            ← "Begin a fresh page..."
- *
- * Why a flat stack + 3D rotation:
- *   Iter 6-7 established the no-new-deps, pure-CSS pattern. We
- *   keep that here: a `perspective: 1200px` parent, with each
- *   spread `position: absolute` and `transform-style: preserve-3d`
- *   so they share the same 3D context. The active spread is
- *   rotateY(0deg); past spreads are rotated -180deg (flipped to
- *   the back-cover). Z-index layering: current=3, next-being-
- *   revealed=1, past/future=0. Click left half → flip backward;
- *   click right half → flip forward. The mid-animation guard
- *   uses an 800ms `setTimeout` to block re-clicks.
- *
- * The right page is the "flipper" in the active spread. The
- * left page stays put (it represents either a past entry or,
- * on the last spread, a future entry that the user hasn't
- * reached yet).
- *
- * Mobile fallback: < md viewport → vertical scroll list (no
- * 3D flip, snappy touch).
  */
 
 import { useEffect, useRef, useState } from "react"
@@ -58,6 +40,10 @@ import { PageCorner } from "./page-corner"
 import { EntryForm, type EntryFormValues } from "./entry-form"
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/hooks/use-i18n"
+
+/** Tailwind's `md` breakpoint = 768px. Single source of truth
+ *  (so the JS media query and the Tailwind class agree). */
+const MD_BREAKPOINT_PX = 768
 
 /** Animation duration in ms — must match the CSS `.book-page`
  *  transition-duration in globals.css. */
@@ -71,6 +57,10 @@ export interface PageTurnProps {
    * values from the <EntryForm> embedded in the last spread's
    * editor page. The parent (DiaryFeed) is responsible for
    * stamping an id + dateLabel on the new entry.
+   *
+   * Iteration 9: also receives the optional Lumi reply
+   * fields so an in-page "Ask Lumi" reply can be persisted
+   * alongside the entry.
    */
   onSave: (values: EntryFormValues) => void
   /**
@@ -169,6 +159,26 @@ function buildSpreads(allEntries: DiaryEntry[]): SpreadPage[][] {
 }
 
 /**
+ * useDesktop hook — true when the viewport is ≥ the Tailwind
+ * `md` breakpoint (768px). Returns `null` during SSR / first
+ * render to avoid a hydration mismatch (the server doesn't
+ * know the viewport size). Components that gate on this hook
+ * should render their mobile path on `null` and let the effect
+ * upgrade them to desktop on the next render.
+ */
+function useDesktop() {
+  const [isDesktop, setIsDesktop] = useState<boolean | null>(null)
+  useEffect(() => {
+    const mq = window.matchMedia(`(min-width: ${MD_BREAKPOINT_PX}px)`)
+    const onChange = () => setIsDesktop(mq.matches)
+    onChange() // initial — sync with current viewport
+    mq.addEventListener("change", onChange)
+    return () => mq.removeEventListener("change", onChange)
+  }, [])
+  return isDesktop
+}
+
+/**
  * EditorPage
  * ----------
  * A single parchment page that hosts the <EntryForm> for new
@@ -228,19 +238,22 @@ function EditorPage({
 }
 
 /**
- * PageTurn
- * --------
- * Renders the 2-page-per-spread book. Click right half to flip
- * forward, left half to flip backward. Mobile (< md) falls back
- * to a vertical scroll list.
+ * DesktopPageTurn
+ * ---------------
+ * The 3D page-turn surface. Click right half to flip forward,
+ * left half to flip backward. Always-visible nav bar at the
+ * bottom for keyboard / screen-reader users.
+ *
+ * This is a child of <PageTurn> — it's separated out so the
+ * mobile path doesn't import / instantiate 3D-related state
+ * we won't need.
  */
-export function PageTurn({
+function DesktopPageTurn({
   entries,
   onSave,
   onEdit,
   onDelete,
   onSpreadChange,
-  emptyState,
 }: PageTurnProps) {
   const { t } = useI18n()
 
@@ -286,20 +299,15 @@ export function PageTurn({
     }, ANIM_MS)
   }
 
-  // -----------------------------------------------------------------
-  // Render — mobile fallback + desktop stage
-  // -----------------------------------------------------------------
   return (
-    <div className="flex flex-col gap-3">
-      {/* The 3D page-turn stage — visible on md+. On mobile
-          we hide it (md:block) and show the vertical stack
-          below instead. The outer wrapper provides the book
-          "cover" chrome (border + drop shadow + inner padding)
-          that BookSpread used to give the diary-feed in
-          Iterations 6-7. */}
+    <div className="flex flex-col gap-6">
+      {/* The 3D page-turn stage — visible on md+. The outer
+          wrapper provides the book "cover" chrome (border +
+          drop shadow + inner padding) so the spread looks
+          like a closed book being opened. */}
       <div
         className={cn(
-          "page-turn-stage book-cover relative hidden w-full overflow-hidden rounded-2xl",
+          "page-turn-stage book-cover relative w-full overflow-hidden rounded-2xl",
           "border-2 border-leather/60 dark:border-gold/40",
           "bg-leather/20 dark:bg-leather-night/40",
           "shadow-[0_30px_80px_-20px_rgba(0,0,0,0.45)]",
@@ -309,7 +317,7 @@ export function PageTurn({
       >
         <div className="book-stage relative h-full w-full">
           {spreads.map((spread, spreadIdx) => {
-            // z-index rules:
+            // z-index rules (Iteration 8 / kept):
             //   - current spread (the one the user is reading) is
             //     on top of the stack.
             //   - "future" spreads (sIdx > safeSpread) are
@@ -323,44 +331,23 @@ export function PageTurn({
             const isFuture = spreadIdx > safeSpread
             const isPast = spreadIdx < safeSpread
 
-            // During a forward flip, the spread BELOW the
-            // current one (safeSpread + 1) is the one being
-            // revealed. We need it visible underneath the
-            // rotating page (z-index 1). The current spread's
-            // right page is rotating (z-index 2 → 0).
             const isBeingRevealed =
               animating === "forward" && spreadIdx === safeSpread + 1
             const isBeingHidden =
               animating === "backward" && spreadIdx === safeSpread - 1
 
-            // Z-index assignment (higher = on top).
             let z = 1
             if (isCurrent) z = 3
             else if (isFuture) z = isBeingRevealed ? 1 : 0
             else if (isPast) z = 0
 
-            // Right page rotation:
-            //   current spread: 0deg (visible, no rotation)
-            //   during forward flip: animates 0 → -180deg
-            //   during backward flip on previous spread: animates
-            //   -180 → 0deg
-            //   past spread: -180deg (flipped to back-cover)
-            //   future spread: 0deg (sitting flat, waiting)
             const isForwardFlipActive =
               animating === "forward" && spreadIdx === safeSpread
             const isBackwardFlipActive =
               animating === "backward" && spreadIdx === safeSpread - 1
 
-            // Pre-compute whether the left/right page is the
-            // editor. The label and the editor copy differ.
             const leftIsEditor = spread[0] === EDITOR
             const rightIsEditor = spread[1] === EDITOR
-            // Roman numerals are PER-PAGE. The left page of
-            // spread N corresponds to entry index (2N), the
-            // right page to entry index (2N+1). When a page is
-            // the editor, we still print a numeric label (we
-            // use the position in the entry list, even if no
-            // entry is there).
             const leftEntryIdx = spreadIdx * 2 + 1
             const rightEntryIdx = spreadIdx * 2 + 2
             const leftLabel = leftIsEditor
@@ -374,23 +361,10 @@ export function PageTurn({
                   entries.findIndex((e) => e === spread[1]) + 1,
                 )
 
-            // Editor variant for the right page:
-            //   • "full"   — both pages of the spread are the editor
-            //   • "right"  — only the right page is the editor
-            //   • "left"   — only the left page is the editor
-            //   • "none"   — neither page is the editor
             let editorVariant: "left" | "right" | "full" | "none" = "none"
             if (leftIsEditor && rightIsEditor) editorVariant = "full"
             else if (rightIsEditor) editorVariant = "right"
             else if (leftIsEditor) editorVariant = "left"
-
-            const rightPageRotation = isPast
-              ? -180
-              : isForwardFlipActive
-                ? -180
-                : isBackwardFlipActive
-                  ? 0
-                  : 0
 
             return (
               <div
@@ -459,7 +433,7 @@ export function PageTurn({
                                 : "rotateY(0deg)",
                       boxShadow:
                         isCurrent && !animating
-                          ? "0 8px 24px -8px rgba(0,0,0,0.35)"
+                          ? "-8px 0 18px -4px rgba(0,0,0,0.35)"
                           : "none",
                     }}
                     aria-hidden={!isCurrent}
@@ -530,49 +504,29 @@ export function PageTurn({
         />
       </div>
 
-      {/* Mobile fallback — vertical stack, no flip. Visible
-          on <md, hidden on md+. */}
-      <div className="flex flex-col gap-4 md:hidden">
-        {entries.length === 0 ? (
-          emptyState ?? <DefaultEmpty />
-        ) : (
-          entries.map((entry, idx) => (
-            <DiaryCard
-              key={entry.id}
-              entry={entry}
-              pageLabel={toRoman(idx + 1)}
-              onEdit={onEdit}
-              onDelete={onDelete}
-            />
-          ))
-        )}
-        {/* On mobile, the in-page editor also renders at the
-            bottom so the user has a way to add entries
-            without modal chrome. */}
-        <EditorPage variant="full" pageLabel={t.editorPageLabel} onSave={onSave} />
-      </div>
-
-      {/* Page navigation — visible on md+. Buttons are
-          always shown (with disabled state) for keyboard /
-          screen-reader users. */}
-      <div className="hidden items-center justify-between gap-2 md:flex">
+      {/* Page navigation — ALWAYS visible (not just on hover),
+          so it's obvious to the user that the page can be
+          flipped, and to make keyboard / screen-reader
+          navigation easy. Iteration 9: moved out of the
+          hover-only zone. */}
+      <div className="flex items-center justify-between gap-2 rounded-full border-2 border-gold/40 bg-leather/10 px-4 py-2 dark:border-gold/40 dark:bg-leather-night/30">
         <button
           type="button"
           onClick={goPrev}
           disabled={!canPrev || !!animating}
           aria-label={t.bookPrevSpread}
           className={cn(
-            "inline-flex items-center gap-1 rounded-full border-2 px-3 py-1.5 font-cinzel text-[10px] font-bold uppercase tracking-widest transition-colors",
+            "inline-flex items-center gap-1 rounded-full border-2 px-3 py-1.5 font-caveat text-base transition-colors",
             canPrev && !animating
               ? "border-gold/60 bg-gold/10 text-gold hover:bg-gold/20"
               : "cursor-not-allowed border-leather/20 text-leather/30 dark:border-gold/20 dark:text-gold/30",
           )}
         >
-          <ChevronLeft className="h-3.5 w-3.5" />
+          <ChevronLeft className="h-4 w-4" />
           {t.bookPrev}
         </button>
-        <span className="font-cinzel text-[10px] font-bold uppercase tracking-widest text-leather/60 dark:text-gold/60">
-          <BookOpen className="mr-1 inline h-3 w-3" />
+        <span className="font-cinzel text-xs font-bold uppercase tracking-widest text-gold">
+          <BookOpen className="mr-1 inline h-3.5 w-3.5" />
           {t.spreadLabel(safeSpread + 1, totalSpreads)}
         </span>
         <button
@@ -581,21 +535,63 @@ export function PageTurn({
           disabled={!canNext || !!animating}
           aria-label={t.bookNextSpread}
           className={cn(
-            "inline-flex items-center gap-1 rounded-full border-2 px-3 py-1.5 font-cinzel text-[10px] font-bold uppercase tracking-widest transition-colors",
+            "inline-flex items-center gap-1 rounded-full border-2 px-3 py-1.5 font-caveat text-base transition-colors",
             canNext && !animating
               ? "border-gold/60 bg-gold/10 text-gold hover:bg-gold/20"
               : "cursor-not-allowed border-leather/20 text-leather/30 dark:border-gold/20 dark:text-gold/30",
           )}
         >
           {t.bookNext}
-          <ChevronRight className="h-3.5 w-3.5" />
+          <ChevronRight className="h-4 w-4" />
         </button>
       </div>
     </div>
   )
 }
 
-function DefaultEmpty() {
+/**
+ * MobileEntryList
+ * ---------------
+ * Vertical list of cards with no 3D flip. Each entry is a
+ * full-width card, stacked top-to-bottom. The in-page editor
+ * sits at the bottom so the user can write a new entry from
+ * the same scrollable surface. No click zones, no
+ * Perspective, no animation.
+ */
+function MobileEntryList({
+  entries,
+  onSave,
+  onEdit,
+  onDelete,
+  emptyState,
+}: PageTurnProps) {
+  const { t } = useI18n()
+  return (
+    <div className="flex flex-col gap-4">
+      {entries.length === 0 ? (
+        emptyState ?? <DefaultMobileEmpty />
+      ) : (
+        entries.map((entry, idx) => (
+          <DiaryCard
+            key={entry.id}
+            entry={entry}
+            pageLabel={toRoman(idx + 1)}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        ))
+      )}
+      {/* In-page editor at the bottom of the mobile list. */}
+      <EditorPage
+        variant="full"
+        pageLabel={t.editorPageLabel}
+        onSave={onSave}
+      />
+    </div>
+  )
+}
+
+function DefaultMobileEmpty() {
   const { t } = useI18n()
   return (
     <div className="flex flex-col items-center gap-2 rounded-md border-2 border-dashed border-leather/30 p-6 text-center dark:border-gold/30">
@@ -604,6 +600,54 @@ function DefaultEmpty() {
         {t.emptyHeading}
       </p>
     </div>
+  )
+}
+
+/**
+ * PageTurn
+ * --------
+ * Public entry point. Decides mobile vs desktop via a
+ * matchMedia hook. SSR / first render returns the mobile
+ * list (no 3D) to keep the markup stable; the effect then
+ * upgrades to the desktop view on the next render.
+ */
+export function PageTurn({
+  entries,
+  onSave,
+  onEdit,
+  onDelete,
+  onSpreadChange,
+  emptyState,
+}: PageTurnProps) {
+  const isDesktop = useDesktop()
+
+  // During SSR / first render, default to the mobile list to
+  // avoid a hydration mismatch (we don't know the viewport
+  // size on the server). Once the effect runs, the user is
+  // either on mobile or desktop, and we render the matching
+  // path.
+  if (!isDesktop) {
+    return (
+      <MobileEntryList
+        entries={entries}
+        onSave={onSave}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onSpreadChange={onSpreadChange}
+        emptyState={emptyState}
+      />
+    )
+  }
+
+  return (
+    <DesktopPageTurn
+      entries={entries}
+      onSave={onSave}
+      onEdit={onEdit}
+      onDelete={onDelete}
+      onSpreadChange={onSpreadChange}
+      emptyState={emptyState}
+    />
   )
 }
 

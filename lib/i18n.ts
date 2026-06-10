@@ -55,6 +55,9 @@ export type Dict = {
   modalSummonLumi: string
   modalSummoningLumi: string
   modalLumiSays: string
+  // Iteration 9: in-page "Ask Lumi" button label (used in
+  // the editor embedded on the last page-turn spread).
+  askLumiCta: string
   // Card-level label for the persisted Lumi reply that renders under
   // the diary card body. Bilingual heading in EN, single-line in zh.
   lumiSays: string
@@ -185,6 +188,7 @@ const en: Dict = {
   modalSummonLumi: "✨ Summon Princess Lumi",
   modalSummoningLumi: "🪄 Summoning Lumi...",
   modalLumiSays: "Princess Lumi says...",
+  askLumiCta: "🪄 Ask Lumi for advice",
   lumiSays: "🪄 Princess Lumi says:",
   bookPageNew: "New Entry",
   bookPageFeed: "Past Whispers",
@@ -299,6 +303,7 @@ const zh: Dict = {
   modalSummonLumi: "✨ 召喚露米公主",
   modalSummoningLumi: "🪄 緊嚟緊嚟...",
   modalLumiSays: "露米公主話...",
+  askLumiCta: "🪄 問吓露米公主",
   lumiSays: "🪄 露米公主話：",
   bookPageNew: "新一篇",
   bookPageFeed: "舊回憶",

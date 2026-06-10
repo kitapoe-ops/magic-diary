@@ -667,10 +667,47 @@
    the 3D context is correct. */
 
 /* The page-turn container. Sets up the 3D camera so child
-   `rotateY` flips actually feel like a real book page. */
+   `rotateY` flips actually feel like a real book page.
+   Iteration 9: bump perspective from 1200px → 1500px for a
+   stronger 3D effect (user reported the flip wasn't visible). */
 .page-turn-stage {
-  perspective: 1200px;
+  perspective: 1500px;
   perspective-origin: 50% 50%;
+}
+
+/* Iteration 9: lift the right page of the active spread with
+   a subtle drop-shadow so the spine looks like the page is
+   actually being held by the binding (vs. flat). The component
+   already rotates the page, so this just adds depth cues. */
+.book-page-right {
+  /* slightly stronger shadow on the active leaf to give it a
+     raised "lifting from the spine" feel */
+  box-shadow: -8px 0 18px -4px rgba(0, 0, 0, 0.35);
+}
+
+/* Iteration 9: full-screen leather background so the page
+   feels like a book (the parchment sits in the middle, with
+   leather "binding" margins on the left/right of the viewport
+   on desktop and leather top/bottom on mobile). */
+body {
+  background-color: #6b4423; /* leather */
+  min-height: 100vh;
+  margin: 0;
+}
+
+.dark body {
+  background-color: #1a0f0a; /* leather-night */
+}
+
+/* On mobile, the parchment is full-bleed and the leather is
+   only at the very top/bottom (the "closed-book" cover). */
+@media (max-width: 767px) {
+  body {
+    background-color: #6b4423;
+  }
+  .dark body {
+    background-color: #1a0f0a;
+  }
 }
 
 /* Each book spread needs `transform-style: preserve-3d` so its

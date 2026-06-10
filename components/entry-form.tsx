@@ -13,19 +13,29 @@
  *   • body (textarea with QuillPen annotation)
  *   • mood (5-button picker)
  *   • stickers (8×2 grid, max 5)
+ *   • "Ask Lumi" button + inline Lumi reply card (Iteration 9)
  *   • submit (Save)
  *
- * The Lumi reply section is intentionally kept inside
- * <EntryModal> — summoning Lumi is a modal-only affordance
- * (needs more vertical space, the casting overlay, and the
- * tokenizer animation).
+ * Iteration 9: the "Ask Lumi" button now lives in the form
+ * itself (not just the modal) so the in-page editor on the
+ * last page-turn spread can summon Lumi while writing. The
+ * reply is rendered as a gold-bordered card below the
+ * button; it persists with the entry when the form is
+ * submitted (the form forwards `lumiReply` + `lumiLanguage`
+ * to its `onSubmit` payload).
+ *
+ * The <EntryModal> still has its own richer Lumi section
+ * (language toggle, typewriter animation, replay button)
+ * because the modal has the screen real-estate for it. The
+ * form's Lumi affordance is intentionally minimal: one
+ * button + one card, with the default UI language.
  *
  * Mobile fallback: the form is fully responsive; the page-turn
  * version stacks vertically (just like the modal does).
  */
 
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react"
-import { Sparkles, PenLine } from "lucide-react"
+import { Sparkles, PenLine, Loader2 } from "lucide-react"
 import {
   MOODS,
   STICKERS,
@@ -37,6 +47,8 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useChime } from "@/hooks/use-chime"
 import { useI18n } from "@/hooks/use-i18n"
+import { useToast } from "./toast-provider"
+import { DEEPSEEK_TOKEN_KEY } from "./deepseek-settings"
 import { QuillPen } from "./quill-pen"
 
 // Narrow the dictionary to string-valued keys only so we can safely index
@@ -63,12 +75,30 @@ const MOOD_LABEL_KEY: Record<MoodKey, StringDictKey> = {
  * renders a "new entry" empty state. When provided, the form
  * hydrates from the entry's fields (used by the modal for
  * "edit existing" mode).
+ *
+ * Iteration 9: add optional Lumi reply fields. The in-page
+ * editor can summon Lumi (via the "Ask Lumi" button) while
+ * the user is writing, and the reply is persisted with the
+ * entry when the form is submitted. `null` means "no reply
+ * was summoned this session".
  */
 export interface EntryFormValues {
   title: string
   body: string
   mood: MoodKey
   stickers: string[]
+  /**
+   * Iteration 9: Lumi reply that was summoned via the
+   * "Ask Lumi" button. `null` when the user did not summon
+   * Lumi. Forwarded to the parent's onSave handler so the
+   * reply is persisted on the entry.
+   */
+  lumiReply?: string | null
+  /**
+   * The language Lumi's reply was written in (`"en"` or
+   * `"zh"`). `null` when `lumiReply` is also `null`.
+   */
+  lumiLanguage?: "en" | "zh" | null
 }
 
 /**
@@ -83,7 +113,8 @@ export interface EntryFormHandle {
 
 export interface EntryFormProps {
   /** Optional initial values; when omitted, the form starts empty. */
-  initial?: Pick<DiaryEntry, "title" | "body" | "mood" | "stickers">
+  initial?: Pick<DiaryEntry, "title" | "body" | "mood" | "stickers"> &
+    Pick<DiaryEntry, "lumiReply" | "lumiLanguage">
   /**
    * Called on submit. The parent is responsible for the actual
    * persistence (the modal wires this to its `onSave`; the
@@ -135,8 +166,9 @@ export const EntryForm = forwardRef<EntryFormHandle, EntryFormProps>(function En
   },
   ref,
 ) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const chime = useChime()
+  const { showToast } = useToast()
 
   const [title, setTitle] = useState(initial?.title ?? "")
   const [body, setBody] = useState(initial?.body ?? "")
@@ -147,6 +179,26 @@ export const EntryForm = forwardRef<EntryFormHandle, EntryFormProps>(function En
 
   const [casting, setCasting] = useState(false)
   const bodyRef = useRef<HTMLTextAreaElement | null>(null)
+
+  // Iteration 9: Lumi reply (Ask Lumi) state. Lives in the
+  // form so the user can summon Lumi while writing. The reply
+  // is persisted via the form's onSubmit payload.
+  const [lumiReply, setLumiReply] = useState<{
+    text: string
+    language: "en" | "zh"
+  } | null>(null)
+  const [lumiLoading, setLumiLoading] = useState(false)
+
+  // Hydrate the Lumi reply from `initial` (edit-mode) so an
+  // existing entry's persisted reply shows up.
+  useEffect(() => {
+    if (initial?.lumiReply) {
+      setLumiReply({
+        text: initial.lumiReply,
+        language: initial.lumiLanguage ?? (locale === "zh" ? "zh" : "en"),
+      })
+    }
+  }, [initial?.lumiReply, initial?.lumiLanguage, locale])
 
   // Publish the current form values via the imperative handle
   // so the modal's "Summon Lumi" button can read them without
@@ -180,8 +232,81 @@ export const EntryForm = forwardRef<EntryFormHandle, EntryFormProps>(function En
         body: body.trim(),
         mood,
         stickers: selectedStickers.length ? selectedStickers : ["✨"],
+        // Iteration 9: forward Lumi reply fields so the
+        // parent's persisted entry keeps the reply.
+        lumiReply: lumiReply?.text ?? null,
+        lumiLanguage: lumiReply?.language ?? null,
       })
     }, 700)
+  }
+
+  /**
+   * Ask Lumi — Iteration 9 (Issue 3).
+   *
+   * Posts the current body (and title, if any) to
+   * `/api/magic-reply` and stores the response in component
+   * state. The reply is rendered inline as a gold-bordered
+   * card so the user can read it before saving the entry.
+   * When the form is submitted, the reply + its language
+   * are passed to the parent's onSave handler so the
+   * reply persists alongside the entry.
+   *
+   * The endpoint contract is `{ diaryContent, language }`;
+   * the diary content combines title + body so Lumi has
+   * the full context (matching what the modal does in
+   * <EntryModal>).
+   */
+  async function handleAskLumi() {
+    const diaryContent = [
+      title.trim() && `Title: ${title.trim()}`,
+      body.trim() && `Story: ${body.trim()}`,
+    ]
+      .filter(Boolean)
+      .join("\n")
+    if (!diaryContent) {
+      showToast(t.modalPlaceholderTitle ?? "✍️ Write something first ✨")
+      return
+    }
+    // DeepSeek token — same source as the modal uses. If it's
+    // missing, we surface a hint to open Settings.
+    const token =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(DEEPSEEK_TOKEN_KEY)?.trim()
+        : null
+    if (!token) {
+      showToast(t.modalNoToken ?? "Add your DeepSeek token in ⚙ Settings first!")
+      return
+    }
+    setLumiLoading(true)
+    try {
+      const language: "en" | "zh" = locale === "zh" ? "zh" : "en"
+      const res = await fetch("/api/magic-reply", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-deepseek-token": token,
+        },
+        body: JSON.stringify({ diaryContent, language }),
+      })
+      const data = (await res.json()) as {
+        reply?: string
+        error?: string
+      }
+      if (!res.ok || !data.reply) {
+        showToast(
+          data.error ?? t.modalAiError ?? "Lumi couldn't reply right now 💜",
+        )
+        return
+      }
+      setLumiReply({ text: data.reply, language })
+      chime(1200)
+    } catch (err) {
+      showToast(
+        err instanceof Error ? err.message : t.modalAiError ?? "Lumi is sleeping 😴",
+      )
+    } finally {
+      setLumiLoading(false)
+    }
   }
 
   const isPage = variant === "page"
@@ -297,6 +422,50 @@ export const EntryForm = forwardRef<EntryFormHandle, EntryFormProps>(function En
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Iteration 9: Ask Lumi button + reply card.
+          Sits between the stickers and the submit button, so
+          the user can summon Lumi while writing and read the
+          reply inline. Disabled when there's no body / when
+          Lumi is already loading. The reply is persisted
+          alongside the entry on submit (see handleSubmit). */}
+      <div className="flex flex-col items-start gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          onClick={handleAskLumi}
+          disabled={lumiLoading || (!title.trim() && !body.trim())}
+          className="w-full border-gold/60 font-caveat text-base text-gold hover:bg-gold/10"
+        >
+          {lumiLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {t.modalSummoningLumi}
+            </>
+          ) : (
+            <>
+              <Sparkles className="mr-2 h-4 w-4" />
+              {t.askLumiCta}
+            </>
+          )}
+        </Button>
+
+        {lumiReply && (
+          <div
+            className="w-full rounded-2xl border-2 border-gold/60 bg-parchment/50 p-3 dark:border-gold/80 dark:bg-leather-night/30"
+            role="note"
+            aria-label={t.lumiSays}
+          >
+            <p className="mb-1 font-cinzel text-[10px] font-bold uppercase tracking-widest text-gold">
+              {t.lumiSays}
+            </p>
+            <p className="handwriting text-sm leading-relaxed text-leather-deep dark:text-ink-light">
+              {lumiReply.text}
+            </p>
+          </div>
+        )}
       </div>
 
       <Button

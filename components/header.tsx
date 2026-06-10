@@ -36,19 +36,17 @@ export function Header() {
   }, [])
 
   return (
-    <header className="sticky top-0 z-30 flex flex-col gap-1 border-b-2 border-leather/30 bg-leather/5 px-4 py-2 backdrop-blur-md dark:border-gold/30 dark:bg-leather-night/30 md:flex-row md:items-center md:justify-between md:gap-2 md:px-6">
-      <div className="flex items-center gap-3">
-        <span className="text-2xl text-gold" aria-hidden="true">
-          <Wand2 className="h-7 w-7" />
+    <header className="sticky top-0 z-30 flex flex-row items-center justify-between gap-2 border-b-2 border-leather/30 bg-leather/80 px-3 py-2 backdrop-blur-md dark:border-gold/30 dark:bg-leather-night/80 sm:px-4 md:px-6">
+      <div className="flex items-center gap-2">
+        <span className="text-xl text-gold" aria-hidden="true">
+          <Wand2 className="h-5 w-5" />
         </span>
-        <div className="flex flex-col">
-          <h1 className="font-cinzel text-xl font-bold tracking-widest text-leather-deep dark:text-gold md:text-2xl">
-            <span className="mr-1">✨</span> {t.appTitle} <span className="ml-1">✨</span>
-          </h1>
-          <p className="hidden font-crimson text-xs italic text-leather/70 dark:text-gold/70 sm:block">
-            {dateLabel}
-          </p>
-        </div>
+        <h1 className="font-cinzel text-sm font-bold tracking-widest text-parchment-dim dark:text-gold sm:text-base md:text-lg">
+          <span className="mr-1">✨</span> {t.appTitle}
+        </h1>
+        <p className="ml-2 hidden font-crimson text-[10px] italic text-parchment-dim/80 dark:text-gold/70 sm:block">
+          {dateLabel}
+        </p>
       </div>
 
       {/* Top-tab nav — replaces the deleted sidebar. */}
@@ -62,20 +60,20 @@ export function Header() {
               href={tab.href}
               onMouseEnter={() => chime(780)}
               className={cn(
-                "flex items-center gap-1.5 rounded-full px-3 py-1.5 font-cinzel text-[10px] font-bold uppercase tracking-widest transition-colors",
+                "flex items-center gap-1.5 rounded-full px-2.5 py-1 font-cinzel text-[10px] font-bold uppercase tracking-widest transition-colors sm:px-3 sm:py-1.5",
                 active
                   ? "border border-gold/60 bg-gold/15 text-gold"
-                  : "border border-transparent text-leather/70 hover:bg-leather/10 dark:text-gold/70 dark:hover:bg-gold/10",
+                  : "border border-transparent text-parchment-dim hover:bg-leather/40 dark:text-gold/70 dark:hover:bg-gold/10",
               )}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">{t[tab.key]}</span>
             </Link>
           )
         })}
       </nav>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         <LanguageToggle />
         <Button
           variant="outline"
@@ -85,9 +83,9 @@ export function Header() {
             toggleTheme()
           }}
           aria-label={theme === "night" ? t.switchToDayMode : t.switchToNightMode}
-          className="shrink-0 border-gold/60 text-gold hover:bg-gold/10"
+          className="h-8 w-8 shrink-0 border-gold/60 text-gold hover:bg-gold/10"
         >
-          {theme === "night" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          {theme === "night" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
         <Button
           variant="outline"
@@ -98,9 +96,9 @@ export function Header() {
           }}
           aria-label={t.dsTitle}
           title={t.dsTitle}
-          className="shrink-0 border-gold/60 text-gold hover:bg-gold/10"
+          className="h-8 w-8 shrink-0 border-gold/60 text-gold hover:bg-gold/10"
         >
-          <SettingsIcon className="h-5 w-5" />
+          <SettingsIcon className="h-4 w-4" />
         </Button>
       </div>
     </header>
