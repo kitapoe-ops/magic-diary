@@ -1,12 +1,10 @@
 "use client"
 
-import { useState } from "react"
 import { Pencil, Trash2 } from "lucide-react"
 import { MOODS, type DiaryEntry } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/hooks/use-i18n"
 import { NotebookPage } from "@/components/notebook-page"
-import { PhotoSlot } from "./photo-slot"
 import { PageCorner } from "./page-corner"
 
 interface DiaryCardProps {
@@ -25,14 +23,12 @@ interface DiaryCardProps {
  * ---------
  * A single diary entry as a "page" of the book. The body text
  * lives in a <NotebookPage> (theme-aware parchment / deep purple
- * paper) and the title, stickers, photos, mood, and the
- * persisted Lumi reply all wrap around it.
+ * paper) and the title, stickers, mood, and the persisted Lumi
+ * reply all wrap around it.
  *
- * Iteration 5: removed hover sparkles, removed starry background
- * refs, removed `animate-slide-up`. Card is intentionally static
- * — only the edit / delete buttons (which appear via
- * group-hover) hint at interactivity, and the page label / photo
- * slots add structure.
+ * Iteration 8: photos removed. The card is now text + stickers
+ * + mood + Lumi reply only. No inline <img> stickers, no
+ * background-image watermarks.
  */
 export function DiaryCard({ entry, pageLabel, onEdit, onDelete }: DiaryCardProps) {
   const { t } = useI18n()
@@ -101,30 +97,6 @@ export function DiaryCard({ entry, pageLabel, onEdit, onDelete }: DiaryCardProps
         </p>
       </NotebookPage>
 
-      {/* Photo slots — Iteration 7 (Issue 1): each photo is
-          rendered as a SUBTLE background image on the slot
-          itself (parchment overlay on top) instead of an
-          inline <img>. The result is a watermark-style
-          treatment: the photo is a faint memory embedded in
-          the diary page, and the entry text + Lumi reply float
-          above it. The W×H label is preserved in the top-left
-          corner so the photo-slot size contract from
-          Iterations 4-6 is unbroken. We use variant="subtle"
-          (75% parchment overlay) per user OK'd default. */}
-      {entry.photos && entry.photos.length > 0 && (
-        <div className="mb-3 flex flex-wrap items-end gap-3">
-          {entry.photos.map((photo, i) => (
-            <PhotoSlot
-              key={i}
-              kind={photo.slot}
-              url={photo.url}
-              compact
-              variant="subtle"
-            />
-          ))}
-        </div>
-      )}
-
       {/* Persisted Lumi reply (from entry-modal's "Summon Princess Lumi"
           action). Only renders when an entry actually has a reply
           persisted. Bilingual header via the `lumiSays` i18n key. */}
@@ -167,3 +139,5 @@ export function DiaryCard({ entry, pageLabel, onEdit, onDelete }: DiaryCardProps
     </article>
   )
 }
+
+export default DiaryCard

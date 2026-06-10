@@ -58,18 +58,24 @@ export type Dict = {
   // Card-level label for the persisted Lumi reply that renders under
   // the diary card body. Bilingual heading in EN, single-line in zh.
   lumiSays: string
-  // Photo-slot placeholder (Iteration 5). "Tap to add photo" /
-  // "點擊加入相片". The frame also shows the exact W×H pixels of
-  // the slot preset (e.g. "300×400") which is rendered as a
-  // separate non-translated monospaced label.
-  photoSlotHint: string
-  /** Aria label when a photo is attached, to announce the dims. */
-  photoSlotPhotoLabel: string
+  // Iteration 8: photos removed from the diary model. The two
+  // photo-slot i18n keys above are also removed (no component
+  // references them anymore).
   // Quill pen / new entry / page navigation
   bookPageNew: string
   bookPageFeed: string
   newEntryHeading: string
   newEntrySubheading: string
+  // Iteration 8: page-turn spread navigation (Prev/Next spread
+  // buttons + the spread count label) + the in-page editor
+  // copy shown on the last spread.
+  bookPrev: string
+  bookNext: string
+  bookPrevSpread: string
+  bookNextSpread: string
+  spreadLabel: (current: number, total: number) => string
+  editorInviteCta: string
+  editorPageLabel: string
   modalAiLanguage: string
   modalAiLanguageHint: string
   modalAiError: string
@@ -180,12 +186,18 @@ const en: Dict = {
   modalSummoningLumi: "🪄 Summoning Lumi...",
   modalLumiSays: "Princess Lumi says...",
   lumiSays: "🪄 Princess Lumi says:",
-  photoSlotHint: "Tap to add photo",
-  photoSlotPhotoLabel: "Photo",
   bookPageNew: "New Entry",
   bookPageFeed: "Past Whispers",
   newEntryHeading: "I. New Entry",
   newEntrySubheading: "Begin a fresh page...",
+  // Iteration 8: spread navigation
+  bookPrev: "Previous",
+  bookNext: "Next",
+  bookPrevSpread: "Previous spread",
+  bookNextSpread: "Next spread",
+  spreadLabel: (current, total) => `Spread ${current} of ${total}`,
+  editorInviteCta: "Begin a fresh page...",
+  editorPageLabel: "New",
   modalAiLanguage: "Reply language",
   modalAiLanguageHint: "Chinese / English",
   modalAiError: "Lumi couldn't reply right now — please try again 💜",
@@ -288,12 +300,18 @@ const zh: Dict = {
   modalSummoningLumi: "🪄 緊嚟緊嚟...",
   modalLumiSays: "露米公主話...",
   lumiSays: "🪄 露米公主話：",
-  photoSlotHint: "點擊加入相片",
-  photoSlotPhotoLabel: "相片",
   bookPageNew: "新一篇",
   bookPageFeed: "舊回憶",
   newEntryHeading: "I. 新一篇",
   newEntrySubheading: "展開新嘅一頁...",
+  // Iteration 8: spread navigation
+  bookPrev: "上一頁",
+  bookNext: "下一頁",
+  bookPrevSpread: "上一個跨頁",
+  bookNextSpread: "下一個跨頁",
+  spreadLabel: (current, total) => `第 ${current} 個跨頁，共 ${total} 個`,
+  editorInviteCta: "展開新嘅一頁...",
+  editorPageLabel: "新",
   modalAiLanguage: "AI 回覆語言",
   modalAiLanguageHint: "中文 / 英文",
   modalAiError: "露米依家覆唔到你，遲啲再試 💜",

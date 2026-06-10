@@ -1,19 +1,14 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { X, Sparkles, Settings as SettingsIcon, PenLine } from "lucide-react"
-import { MOODS, STICKERS, type DiaryEntry, type MoodKey } from "@/lib/mock-data"
-import type { Dict } from "@/lib/i18n"
-import type { DiaryPhoto, PhotoSlotKind } from "@/lib/photo-sizes"
-import { PHOTO_SLOT_SIZES, getPhotoSlotSize } from "@/lib/photo-sizes"
+import { X, Sparkles, Settings as SettingsIcon } from "lucide-react"
+import { type DiaryEntry } from "@/lib/mock-data"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { useChime } from "@/hooks/use-chime"
 import { useI18n } from "@/hooks/use-i18n"
 import { DEEPSEEK_OPEN_EVENT, DEEPSEEK_TOKEN_KEY } from "./deepseek-settings"
 import { MagicPenWriting } from "./magic-pen-writing"
-import { QuillPen } from "./quill-pen"
-import { PhotoSlot } from "./photo-slot"
+import { EntryForm, type EntryFormValues } from "./entry-form"
 import { PageCorner } from "./page-corner"
 
 interface EntryModalProps {
@@ -25,86 +20,30 @@ interface EntryModalProps {
    * entry (localStorage) keeps Lumi's response across reloads. We
    * `Pick<DiaryEntry, "lumiReply" | "lumiLanguage">` to widen the
    * base `Omit<...>` type without losing type-safety on the rest
-   * of the payload. Iteration 5 also adds the optional `photos`
-   * array.
+   * of the payload. Iteration 8: photos removed from the model.
    */
   onSave: (
     entry: Omit<DiaryEntry, "id" | "dateLabel" | "category"> &
-      Pick<DiaryEntry, "lumiReply" | "lumiLanguage"> & {
-        photos?: DiaryPhoto[]
-      },
+      Pick<DiaryEntry, "lumiReply" | "lumiLanguage">,
   ) => void
   initial?: DiaryEntry | null
 }
 
-// Narrow the dictionary to string-valued keys only so we can safely index
-// `t[moodLabelKey]` and pass the result to aria-label.
-type StringKey<T> = {
-  [K in keyof T]: T[K] extends string ? K : never
-}[keyof T]
-type StringDictKey = StringKey<Dict>
-
-const MOOD_LABEL_KEY: Record<MoodKey, StringDictKey> = {
-  sad: "moodLabelSad",
-  meh: "moodLabelMeh",
-  happy: "moodLabelHappy",
-  excited: "moodLabelExcited",
-  loved: "moodLabelLoved",
-}
-
-/** The order in which photo slots are exposed in the modal. */
-const PHOTO_SLOT_ORDER: PhotoSlotKind[] = [
-  "wide-banner",
-  "portrait-3x4",
-  "landscape-4x3",
-  "square-stamp",
-]
-
 /**
- * Iteration 6 (Bug 4): the four image01-generated photos that
- * pre-fill the diary. These live in `public/images/quill-slots/`
- * and are generated in parallel by Subagent A; the <PhotoSlot>
- * component gracefully falls back to the "Tap to add photo"
- * placeholder when the file is missing.
+ * EntryModal
+ * ----------
+ * Pop-up modal for the header "+" button. Iteration 8: the form
+ * fields (mood, title, body, stickers, save) are delegated to
+ * <EntryForm>; this component is just the modal chrome (overlay,
+ * scroll container, page corners, header) + the Lumi reply
+ * section, which is a modal-only affordance (the in-page editor
+ * on the last spread doesn't summon Lumi).
  */
-const DEFAULT_PHOTOS: DiaryPhoto[] = [
-  { url: "/images/quill-slots/portrait-wand.jpg", w: 300, h: 400, slot: "portrait-3x4" },
-  { url: "/images/quill-slots/landscape-broom.jpg", w: 400, h: 300, slot: "landscape-4x3" },
-  { url: "/images/quill-slots/square-hat.jpg", w: 200, h: 200, slot: "square-stamp" },
-  { url: "/images/quill-slots/banner-owl.jpg", w: 600, h: 200, slot: "wide-banner" },
-]
-
-/**
- * Tiny wrapper that defers rendering the <QuillPen> until the
- * textarea ref has actually been populated. We can't just write
- * `bodyRef.current && <QuillPen />` in JSX because refs aren't
- * populated during the same render pass; the wrapper uses a
- * one-shot state flag to force a re-render after mount.
- */
-function QuillPenBody({
-  hostRef,
-}: {
-  hostRef: React.MutableRefObject<HTMLTextAreaElement | null>
-}) {
-  const [ready, setReady] = useState(false)
-  useEffect(() => {
-    if (hostRef.current) setReady(true)
-  }, [hostRef])
-  if (!ready) return null
-  return <QuillPen textareaRef={hostRef as React.RefObject<HTMLTextAreaElement>} />
-}
-
 export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) {
   const { t, locale, setLocale } = useI18n()
-  const chime = useChime()
 
-  const [title, setTitle] = useState("")
-  const [body, setBody] = useState("")
-  const [mood, setMood] = useState<MoodKey>("happy")
-  const [selectedStickers, setSelectedStickers] = useState<string[]>([])
-  const [photos, setPhotos] = useState<DiaryPhoto[]>([])
-
-  const [casting, setCasting] = useState(false)
+  // Lumi state lives here in the modal (not in <EntryForm>)
+  // because the Lumi section is part of the modal chrome.
   const [lumiLoading, setLumiLoading] = useState(false)
   const [lumiReply, setLumiReply] = useState<string | null>(null)
   const [lumiError, setLumiError] = useState<string | null>(null)
@@ -113,15 +52,12 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
   // Bump to replay the Lumi reply typewriter animation.
   const [lumiReplayKey, setLumiReplayKey] = useState(0)
 
-  // Ref for the QuillPen to follow the body textarea.
-  const bodyRef = useRef<HTMLTextAreaElement | null>(null)
-  // Refs for each photo slot's hidden file input.
-  const fileInputRefs = useRef<Record<PhotoSlotKind, HTMLInputElement | null>>({
-    "portrait-3x4": null,
-    "landscape-4x3": null,
-    "square-stamp": null,
-    "wide-banner": null,
-  })
+  // Ref into the inner form so the "Summon Lumi" button (which
+  // lives outside the form) can read the current title / body
+  // without us having to lift state to the modal.
+  const formRef = useRef<{ getValues: () => { title: string; body: string } } | null>(
+    null,
+  )
 
   useEffect(() => {
     setAiLang(locale === "zh" ? "zh" : "en")
@@ -129,62 +65,33 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
 
   useEffect(() => {
     if (open) {
-      setTitle(initial?.title ?? "")
-      setBody(initial?.body ?? "")
-      setMood(initial?.mood ?? "happy")
-      setSelectedStickers(initial?.stickers ?? [])
-      // Iteration 6 (Bug 4): when the user opens "New Entry"
-      // (no `initial` passed), pre-fill the four photo slots
-      // with the image01-generated placeholders so the editor
-      // shows real images on first open. If the user is editing
-      // an existing entry, we use that entry's `photos` array
-      // (which may already have user-attached images or the
-      // pre-filled placeholders from the demo data).
-      if (initial?.photos && initial.photos.length > 0) {
-        setPhotos(initial.photos)
-      } else if (!initial) {
-        setPhotos(DEFAULT_PHOTOS)
-      } else {
-        setPhotos([])
-      }
-      setCasting(false)
       setLumiReply(null)
       setLumiError(null)
     }
-  }, [open, initial])
+  }, [open])
 
   if (!open) return null
 
-  function toggleSticker(s: string) {
-    setSelectedStickers((prev) =>
-      prev.includes(s) ? prev.filter((x) => x !== s) : prev.length < 5 ? [...prev, s] : prev,
-    )
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!title.trim()) return
-    setCasting(true)
-    chime(990)
-    window.setTimeout(() => {
-      // Edit-mode: if the user did not summon Lumi again this session,
-      // keep whatever Lumi reply was already on the entry (initial).
-      // New-mode: persist whatever the user just summoned (or null).
-      const replyToSave = lumiReply ?? initial?.lumiReply ?? null
-      const langToSave = replyToSave
-        ? (lumiReply ? aiLang : initial?.lumiLanguage ?? null)
-        : null
-      onSave({
-        title: title.trim(),
-        body: body.trim(),
-        mood,
-        stickers: selectedStickers.length ? selectedStickers : ["✨"],
-        lumiReply: replyToSave,
-        lumiLanguage: langToSave,
-        photos: photos.length > 0 ? photos : [],
-      })
-      onClose()
-    }, 700)
+  function handleFormSubmit(values: EntryFormValues) {
+    // Edit-mode: if the user did not summon Lumi again this
+    // session, keep whatever Lumi reply was already on the
+    // entry (initial). New-mode: persist whatever the user
+    // just summoned (or null).
+    const replyToSave = lumiReply ?? initial?.lumiReply ?? null
+    const langToSave = replyToSave
+      ? lumiReply
+        ? aiLang
+        : initial?.lumiLanguage ?? null
+      : null
+    onSave({
+      title: values.title,
+      body: values.body,
+      mood: values.mood,
+      stickers: values.stickers,
+      lumiReply: replyToSave,
+      lumiLanguage: langToSave,
+    })
+    onClose()
   }
 
   async function summonLumi() {
@@ -196,6 +103,7 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
       setLumiError(t.modalNoToken)
       return
     }
+    const { title, body } = formRef.current?.getValues() ?? { title: "", body: "" }
     const diaryContent = [
       title.trim() && `Title: ${title.trim()}`,
       body.trim() && `Story: ${body.trim()}`,
@@ -229,31 +137,11 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
       }
       setLumiReply(data.reply)
       setLumiReplayKey((k) => k + 1)
-      chime(1180)
     } catch (err) {
       setLumiError(err instanceof Error ? err.message : t.modalAiError)
     } finally {
       setLumiLoading(false)
     }
-  }
-
-  function pickPhotoFile(kind: PhotoSlotKind) {
-    fileInputRefs.current[kind]?.click()
-  }
-
-  function onPhotoSelected(kind: PhotoSlotKind, file: File) {
-    const url = URL.createObjectURL(file)
-    const size = getPhotoSlotSize(kind)
-    const next: DiaryPhoto = { url, w: size.w, h: size.h, slot: kind }
-    setPhotos((prev) => {
-      // If a photo is already in this slot, replace it.
-      const filtered = prev.filter((p) => p.slot !== kind)
-      return [...filtered, next]
-    })
-  }
-
-  function removePhoto(kind: PhotoSlotKind) {
-    setPhotos((prev) => prev.filter((p) => p.slot !== kind))
   }
 
   return (
@@ -283,197 +171,11 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label
-              className="font-cinzel text-xs font-bold uppercase tracking-widest text-leather-deep dark:text-gold"
-              htmlFor="title"
-            >
-              {t.modalLabelTitle}
-            </label>
-            <input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t.modalPlaceholderTitle}
-              className="rounded-2xl border-2 border-leather/30 bg-leather/5 px-4 py-2.5 font-crimson text-leather-deep placeholder:italic placeholder:text-leather/40 focus:border-gold focus:outline-none dark:border-gold/40 dark:bg-leather-night/20 dark:text-ink-light dark:placeholder:text-gold/40"
-              autoFocus
-            />
-          </div>
-
-          {/* body — QuillPen annotation overlay. The wrapper is
-              relative so the pen + canvas can layer on top of the
-              textarea. The textarea itself is the QuillPen's
-              anchor. */}
-          <div className="flex flex-col gap-1.5">
-            <label
-              className="font-cinzel text-xs font-bold uppercase tracking-widest text-leather-deep dark:text-gold"
-              htmlFor="body"
-            >
-              {t.modalLabelBody}
-            </label>
-            <div className="relative">
-              <textarea
-                ref={bodyRef}
-                id="body"
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                rows={5}
-                placeholder={t.modalPlaceholderBody}
-                className="block w-full resize-none rounded-2xl border-2 border-leather/30 bg-leather/5 px-4 py-2.5 font-crimson leading-relaxed text-leather-deep placeholder:italic placeholder:text-leather/40 focus:border-gold focus:outline-none dark:border-gold/40 dark:bg-leather-night/20 dark:text-ink-light dark:placeholder:text-gold/40"
-              />
-              <QuillPenBody hostRef={bodyRef} />
-            </div>
-          </div>
-
-          {/* mood selector */}
-          <div className="flex flex-col gap-2">
-            <span className="font-cinzel text-xs font-bold uppercase tracking-widest text-leather-deep dark:text-gold">
-              {t.modalLabelMood}
-            </span>
-            <div className="flex items-center justify-between gap-2">
-              {MOODS.map((m) => (
-                <button
-                  key={m.key}
-                  type="button"
-                  onClick={() => {
-                    chime(720)
-                    setMood(m.key)
-                  }}
-                  aria-label={t[MOOD_LABEL_KEY[m.key]]}
-                  aria-pressed={mood === m.key}
-                  className={cn(
-                    "flex flex-1 flex-col items-center gap-1 rounded-2xl border-2 p-2 transition-all",
-                    mood === m.key
-                      ? "border-gold bg-gold/20"
-                      : "border-leather/20 hover:bg-leather/10 dark:border-gold/20 dark:hover:bg-gold/10",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "text-2xl transition-transform",
-                      mood === m.key && "scale-150",
-                    )}
-                  >
-                    {m.emoji}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* sticker picker */}
-          <div className="flex flex-col gap-2">
-            <span className="font-cinzel text-xs font-bold uppercase tracking-widest text-leather-deep dark:text-gold">
-              {t.modalLabelStickers}{" "}
-              <span className="font-crimson text-xs italic text-leather/60 dark:text-gold/60">
-                {t.modalStickersHint}
-              </span>
-            </span>
-            <div className="grid grid-cols-8 gap-1.5">
-              {STICKERS.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => toggleSticker(s)}
-                  aria-pressed={selectedStickers.includes(s)}
-                  className={cn(
-                    "aspect-square rounded-xl text-xl transition-all hover:scale-110",
-                    selectedStickers.includes(s)
-                      ? "bg-gold/30 ring-2 ring-gold scale-110"
-                      : "bg-leather/10 dark:bg-gold/10",
-                  )}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* photo slots — one per preset, click to attach. We
-              keep all four slots visible so the user understands
-              the size options; an attached photo replaces the
-              placeholder for that slot. */}
-          <div className="flex flex-col gap-2">
-            <span className="font-cinzel text-xs font-bold uppercase tracking-widest text-leather-deep dark:text-gold">
-              Photos
-            </span>
-            <div className="flex flex-wrap items-end gap-3">
-              {PHOTO_SLOT_ORDER.map((kind) => {
-                const attached = photos.find((p) => p.slot === kind)
-                return (
-                  <div key={kind} className="flex flex-col items-center gap-1">
-                    {attached ? (
-                      <PhotoSlot
-                        kind={kind}
-                        url={attached.url}
-                        variant="medium"
-                        onRemove={() => removePhoto(kind)}
-                      />
-                    ) : (
-                      <PhotoSlot kind={kind} onClick={() => pickPhotoFile(kind)} />
-                    )}
-                    <input
-                      ref={(el) => {
-                        fileInputRefs.current[kind] = el
-                      }}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) onPhotoSelected(kind, file)
-                        // reset value so picking the same file again
-                        // still triggers onChange
-                        e.target.value = ""
-                      }}
-                    />
-                    <span className="font-cinzel text-[9px] font-bold uppercase tracking-widest text-leather/60 dark:text-gold/60">
-                      {PHOTO_SLOT_SIZES[kind].label}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          <Button
-            type="submit"
-            variant="gold"
-            size="lg"
-            disabled={casting}
-            className={cn("mt-2 w-full text-base", casting && "animate-pulse")}
-          >
-            <Sparkles className={cn("h-5 w-5", casting && "animate-spin")} />
-            {casting ? t.modalCasting : t.modalCast}
-            <Sparkles className={cn("h-5 w-5", casting && "animate-spin")} />
-          </Button>
-
-          {/* Casting "書寫中" overlay — a magic pen wipes across the
-              entry title while sparkles spin at both ends. */}
-          {casting && (
-            <div
-              className="relative mt-2 overflow-hidden rounded-2xl border-2 border-gold/40 bg-gold/5 px-4 py-3 dark:border-gold/60 dark:bg-purple-500/10"
-              role="status"
-              aria-live="polite"
-            >
-              <div className="flex items-center gap-2">
-                <span className="casting-sparkle text-lg" aria-hidden="true">🪄</span>
-                <span className="handwriting flex-1 truncate text-sm text-leather-deep dark:text-ink-light">
-                  {title.trim() || t.modalPlaceholderTitle}
-                </span>
-                <span className="casting-sparkle text-lg" aria-hidden="true">✨</span>
-              </div>
-              <span
-                className="pen-wipe"
-                style={{ filter: "drop-shadow(0 0 6px hsla(43,96%,56%,0.7))" }}
-                aria-hidden="true"
-              >
-                <PenLine className="h-5 w-5 -translate-y-1 text-gold" />
-              </span>
-            </div>
-          )}
-        </form>
+        <EntryForm
+          initial={initial ?? undefined}
+          onSubmit={handleFormSubmit}
+          ref={formRef}
+        />
 
         {/* Lumi divider */}
         <div className="my-5 flex items-center gap-2">

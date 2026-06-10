@@ -752,32 +752,15 @@
 }
 
 /* =====================================================================
-   Iteration 7 — Photo-slot background overlay + mini-book spine
+   Iteration 8 — Mini-book spine + book page inset shadows
    =====================================================================
-   The <PhotoSlot> in Iter 7 renders the photo as a background-image
-   with a parchment (or leather-night) overlay on top. The opacity
-   is set inline by the component; we only set the COLOUR here so
-   it flips correctly between day and night mode.
+   Iteration 7's photo-slot overlay rules were removed when photos
+   were dropped from the diary model (Issue 1). The mini-book
+   spine + parchment-page gutters below are still used by
+   <PageTurn> for the 2-page mini-spread (left + right pages
+   with a thin shadow gutter in the middle).
 
-   The overlay colour is intentionally cream/parchment in light
-   mode (so the photo looks like a faint watermark on a tan page)
-   and deep leather-night in dark mode (so the photo ghosts into
-   a starry night journal). The opacity (0.75 default = "subtle")
-   is multiplied by the alpha of this colour; the photo's
-   `background-blend-mode` (where supported) is left to the
-   default so colours look natural. */
-
-.photo-slot-overlay {
-  background-color: rgb(244, 233, 200); /* parchment cream */
-  mix-blend-mode: multiply;
-}
-
-:is(.dark, :not(.day)) .photo-slot-overlay {
-  background-color: rgb(26, 15, 10); /* leather-night */
-  mix-blend-mode: normal;
-}
-
-/* Mini-book spine — a thin vertical line down the center of
+   Mini-book spine — a thin vertical line down the center of
    the right pane. Drawn as a 2px gold-tinted shadow with a
    hairline dark center, so the eye reads it as a binding
    crease between two pages. */

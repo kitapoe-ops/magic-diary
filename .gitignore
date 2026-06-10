@@ -1,7 +1,7 @@
 # v0 runtime files
 __v0_runtime_loader.js
 __v0_devtools.tsx
-__v0_jsx-dev-runtime.ts
+__v0_jsx-devruntime.ts
 
 # Common ignores
 node_modules
@@ -13,7 +13,5 @@ build-output.txt
 PHASE_5_SUMMARY_DRAFT.md
 PHASE_6_SUMMARY_DRAFT.md
 PHASE_7_SUMMARY_DRAFT.md
+PHASE_8_SUMMARY_DRAFT.md
 build-output-iter*.txt
-# Raw image-01 candidates (only commit the 4 *_pick*.jpg winners)
-public/images/quill-slots/*_[0-9].jpg
-public/images/quill-slots/gen_log_*.txt
