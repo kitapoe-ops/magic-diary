@@ -1,7 +1,29 @@
 "use client"
 
 /**
- * PageTurn — Iteration 15 (Issue: click-zone intercepts editor input)
+ * PageTurn — Iteration 16 (Issue: future spread overlapping current)
+ * -------------------------------------------------------------------
+ * Iteration 16 fixes the visual overlap bug (Telegram 2026-06-11,
+ * #16450 — "又到返舊日記重疊"). V15 fixed the click-zone
+ * pointer-events bug that was making the textarea untypable, but
+ * the underlying visual overlap between the current spread and the
+ * future (not-yet-revealed) editor spread was still there.
+ *
+ * Root cause: the spread visibility rule was
+ *   `isPast || isBeingHidden ? "hidden" : "visible"`,
+ * which made the FUTURE spread (e.g. spread 2 / editor page) render
+ * with `visibility: visible` from the very first frame — at
+ * z-index 0 under the current spread, but still fully rendered and
+ * therefore visible. Two `visibility: visible` spreads at the same
+ * time = visual overlap.
+ *
+ * Fix: only the CURRENT spread, the spread being REVEALED (forward
+ * flip mid-animation) and the spread being HIDDEN (backward flip
+ * mid-animation) are now `visibility: visible`. Past + future-
+ * not-yet-flipped-to are `visibility: hidden`, so only ONE spread
+ * is fully rendered at any moment. This kills the overlap.
+ *
+ * Iteration 15 (Issue: click-zone intercepts editor input)
  * --------------------------------------------------------------------
  * Iteration 15 fixes a high-priority functional bug (Telegram
  * 2026-06-11, #16445): on the editor spread the user could
@@ -543,8 +565,27 @@ function DesktopPageTurn({
                 style={{
                   zIndex: z,
                   pointerEvents: isCurrent ? "auto" : "none",
+                  // Iteration 16 (Issue: future spread overlapping the
+                  // current spread). Previously the visibility was
+                  // `isPast || isBeingHidden ? "hidden" : "visible"`,
+                  // which meant every non-past spread (including the
+                  // FUTURE spread waiting to be revealed) was rendered
+                  // with `visibility: visible`. Two fully-rendered
+                  // spreads at the same time → visual overlap on the
+                  // editor page.
+                  //
+                  // Fix: only the CURRENT spread, the spread being
+                  // REVEALED (forward flip mid-animation) and the
+                  // spread being HIDDEN (backward flip mid-animation)
+                  // are visible. Past spreads + future spreads that
+                  // are not yet in the middle of being flipped to are
+                  // `visibility: hidden`. This keeps the visual
+                  // surface to exactly one fully-rendered spread at a
+                  // time, eliminating the overlap.
                   visibility:
-                    isPast || isBeingHidden ? "hidden" : "visible",
+                    isCurrent || isBeingRevealed || isBeingHidden
+                      ? "visible"
+                      : "hidden",
                 }}
                 aria-hidden={!isCurrent}
               >
