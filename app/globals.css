@@ -714,6 +714,19 @@ body {
    child right page can rotate in 3D. The component handles
    z-index and visibility inline; we just give it the 3D
    context. */
+
+/* Iteration 12: belt-and-suspenders `height: 100%` for the
+   inner .book-stage. The component already passes `h-full`
+   (Tailwind's `height: 100%`), but in some Safari flex
+   contexts the percentage-height resolution against a
+   min-height-only parent falls back to `auto`, collapsing
+   the entire book to 0 height. An explicit CSS rule with
+   `!important` is the safest cross-browser way to ensure
+   the inner stage fills the cover's resolved height. */
+.book-stage {
+  height: 100% !important;
+}
+
 .book-spread-flipper {
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;

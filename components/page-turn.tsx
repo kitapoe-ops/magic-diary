@@ -338,13 +338,24 @@ function DesktopPageTurn({
           like a closed book being opened. */}
       <div
         className={cn(
+          // Iteration 12: explicit `h-[min(70vh,50rem)]` so the
+          // book has a real, view-port-relative height. The
+          // previous `min-height: 26rem` + `h-full` chain failed
+          // in the flex-column ancestor because `height: 100%`
+          // resolves against the parent's `height` (not its
+          // `min-height`), so the inner `.book-stage` collapsed
+          // to 0 — leaving the user staring at the corner
+          // PageCorner SVGs and the nav bar, with no DiaryCard
+          // content visible. vh gives a robust explicit height
+          // for desktop; `min-h-[26rem]` keeps a sane floor for
+          // tiny browser windows where 70vh < 26rem.
           "page-turn-stage book-cover relative w-full overflow-hidden rounded-2xl",
+          "h-[min(70vh,50rem)] min-h-[26rem]",
           "border-2 border-leather/60 dark:border-gold/40",
           "bg-leather/20 dark:bg-leather-night/40",
           "shadow-[0_30px_80px_-20px_rgba(0,0,0,0.45)]",
           "p-2 sm:p-3 md:p-4",
         )}
-        style={{ minHeight: "26rem" }}
       >
         <div className="book-stage relative h-full w-full">
           {spreads.map((spread, spreadIdx) => {
