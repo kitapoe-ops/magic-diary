@@ -108,6 +108,35 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${quicksand.variable} ${pacifico.variable} ${kalam.variable} ${zcool.variable} ${cinzel.variable} ${crimson.variable} ${caveat.variable} ${xiaowei.variable} ${mashanzheng.variable}`}
     >
+      <head>
+        {/* Iteration 10: preload all 10 diary stamps so the
+            browser fetches them in parallel with the page
+            render. This is the key piece for "no layout
+            shift" — by the time the <DiaryStamp> components
+            mount and the <img> tags try to fetch, the images
+            are already in the cache. The wrapper element has
+            explicit width/height too, so even if the image
+            takes a beat longer the layout doesn't shift. */}
+        {[
+          "sorting-hat",
+          "wand",
+          "broom",
+          "owl",
+          "spellbook",
+          "potion",
+          "candle",
+          "key",
+          "mandrake",
+          "scroll",
+        ].map((name) => (
+          <link
+            key={name}
+            rel="preload"
+            as="image"
+            href={`/images/diary-stamps/${name}.jpg`}
+          />
+        ))}
+      </head>
       <body className="font-sans antialiased text-leather-deep min-h-screen">
         {children}
       </body>

@@ -1,0 +1,72 @@
+{
+  "sorting-hat.jpg": {
+    "object": "Sorting Hat",
+    "size": "256x256",
+    "aspect_ratio": "1:1",
+    "position": "page-corner top-left (every page)",
+    "prompt_keywords": ["hat", "wizard", "leather", "stool", "stitching", "candlelight", "oil-painting"]
+  },
+  "wand.jpg": {
+    "object": "Wizard Wand",
+    "size": "256x256",
+    "aspect_ratio": "1:1",
+    "position": "page-corner top-right (every page)",
+    "prompt_keywords": ["wand", "Celtic knotwork", "phoenix feather", "crystal tip", "candlelight", "parchment"]
+  },
+  "broom.jpg": {
+    "object": "Nimbus Broomstick",
+    "size": "256x256",
+    "aspect_ratio": "1:1",
+    "position": "entry badge #1 (inline, demo entry 1 — fractions)",
+    "prompt_keywords": ["broomstick", "mahogany", "burgundy leather", "brass studs", "Hogwarts stone", "firelight"]
+  },
+  "owl.jpg": {
+    "object": "Hedwig Owl",
+    "size": "256x256",
+    "aspect_ratio": "1:1",
+    "position": "page-corner bottom-left (every page)",
+    "prompt_keywords": ["barn owl", "amber eyes", "moonlight", "Victorian", "botanical illustration"]
+  },
+  "spellbook.jpg": {
+    "object": "Spellbook",
+    "size": "256x256",
+    "aspect_ratio": "1:1",
+    "position": "page-corner bottom-right (every page)",
+    "prompt_keywords": ["leather book", "brass corners", "gold star", "bookmark", "candlelight", "book illustration"]
+  },
+  "potion.jpg": {
+    "object": "Potion Bottle",
+    "size": "256x256",
+    "aspect_ratio": "1:1",
+    "position": "entry badge #2 (inline, demo entry 2 — bracelet)",
+    "prompt_keywords": ["potion bottle", "emerald liquid", "cork stopper", "apothecary", "green refractions"]
+  },
+  "candle.jpg": {
+    "object": "Beeswax Candle",
+    "size": "256x256",
+    "aspect_ratio": "1:1",
+    "position": "editor corner top-right (editor page)",
+    "prompt_keywords": ["candle", "beeswax", "flame", "brass holder", "chiaroscuro", "still-life"]
+  },
+  "key.jpg": {
+    "object": "Golden Key",
+    "size": "256x256",
+    "aspect_ratio": "1:1",
+    "position": "editor corner bottom-right (editor page)",
+    "prompt_keywords": ["brass key", "Victorian", "skeleton key", "patina", "antiques illustration"]
+  },
+  "mandrake.jpg": {
+    "object": "Mandrake Root",
+    "size": "256x256",
+    "aspect_ratio": "1:1",
+    "position": "editor corner bottom-left (editor page)",
+    "prompt_keywords": ["mandrake", "humanoid plant", "leafy hair", "surprised face", "loamy soil", "botanical illustration"]
+  },
+  "scroll.jpg": {
+    "object": "Magical Scroll",
+    "size": "256x256",
+    "aspect_ratio": "1:1",
+    "position": "entry badge #3 (inline, demo entry 3 — spelling test)",
+    "prompt_keywords": ["scroll", "parchment", "wax seal", "gold cord", "runes", "manuscript illustration"]
+  }
+}

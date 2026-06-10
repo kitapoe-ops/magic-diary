@@ -38,6 +38,7 @@ import type { DiaryEntry } from "@/lib/mock-data"
 import { DiaryCard } from "./diary-card"
 import { PageCorner } from "./page-corner"
 import { EntryForm, type EntryFormValues } from "./entry-form"
+import { DiaryStamp } from "./diary-stamp"
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/hooks/use-i18n"
 
@@ -214,6 +215,33 @@ function EditorPage({
     >
       <PageCorner position="top-left" tone="leather" inline />
       <PageCorner position="bottom-right" tone="leather" inline />
+      {/* Iteration 10: 3 editor-page corner accents. The
+          spec mapped candle (TR), key (BR), mandrake (BL) —
+          i.e. only the right side + bottom-left, no top-left
+          stamp on the editor (the page-corner flourish is
+          already there). All absolute-positioned, no layout
+          shift. */}
+      <DiaryStamp
+        src="/images/diary-stamps/candle.jpg"
+        alt="Candle"
+        emojiFallback="🕯️"
+        size={32}
+        position="top-right"
+      />
+      <DiaryStamp
+        src="/images/diary-stamps/key.jpg"
+        alt="Golden Key"
+        emojiFallback="🗝️"
+        size={32}
+        position="bottom-right"
+      />
+      <DiaryStamp
+        src="/images/diary-stamps/mandrake.jpg"
+        alt="Mandrake"
+        emojiFallback="🍄"
+        size={32}
+        position="bottom-left"
+      />
       <div className="mb-2 flex items-center justify-between">
         <h3 className="font-cinzel text-base font-bold tracking-widest text-leather-deep dark:text-gold">
           <PenLine className="mr-1 inline h-4 w-4" />

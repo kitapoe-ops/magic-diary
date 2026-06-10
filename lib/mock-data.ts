@@ -55,6 +55,20 @@ export interface DiaryEntry {
    * can be rendered / replayed with the correct language hint.
    */
   lumiLanguage?: "en" | "zh" | null
+  /**
+   * Iteration 10: optional inline "entry badge" stamp shown in
+   * the metadata row (date + mood). Static mapping — wired to
+   * 3 demo entries (id 1, 2, 3). New entries created at runtime
+   * via the editor don't have a stamp.
+   *
+   * `src` is the public path; `alt` is the short noun;
+   * `emoji` is the fallback character if the image fails.
+   */
+  stamp?: {
+    src: string
+    alt: string
+    emoji: string
+  }
 }
 
 export const MOCK_ENTRIES: DiaryEntry[] = [
@@ -68,6 +82,11 @@ export const MOCK_ENTRIES: DiaryEntry[] = [
     stickers: ["🌈", "⭐", "✨"],
     lumiReply: null,
     lumiLanguage: null,
+    stamp: {
+      src: "/images/diary-stamps/broom.jpg",
+      alt: "Nimbus Broom",
+      emoji: "🧹",
+    },
   },
   {
     id: "2",
@@ -79,6 +98,11 @@ export const MOCK_ENTRIES: DiaryEntry[] = [
     stickers: ["💜", "💖", "🦄", "🌸"],
     lumiReply: null,
     lumiLanguage: null,
+    stamp: {
+      src: "/images/diary-stamps/potion.jpg",
+      alt: "Potion Bottle",
+      emoji: "⚗️",
+    },
   },
   {
     id: "3",
@@ -90,6 +114,11 @@ export const MOCK_ENTRIES: DiaryEntry[] = [
     stickers: ["⭐", "👑", "🌟", "✨"],
     lumiReply: null,
     lumiLanguage: null,
+    stamp: {
+      src: "/images/diary-stamps/scroll.jpg",
+      alt: "Magical Scroll",
+      emoji: "📜",
+    },
   },
 ]
 

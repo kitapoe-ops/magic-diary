@@ -8,6 +8,19 @@ import { useToast } from "./toast-provider"
 import { formatCuteDate } from "@/lib/mock-data"
 import { useI18n } from "@/hooks/use-i18n"
 
+/**
+ * Iteration 10: static stamp mapping for the 3 demo entries. Kept
+ * here (not in `mock-data.ts`) because it's a hydration-migration
+ * concern, not part of the entry data model. When a user clears
+ * localStorage (or the schema migrates), we want the demo entries
+ * to come back with their inline badges intact.
+ */
+const STAMP_BY_ENTRY_ID: Record<string, DiaryEntry["stamp"]> = {
+  "1": { src: "/images/diary-stamps/broom.jpg", alt: "Nimbus Broom", emoji: "🧹" },
+  "2": { src: "/images/diary-stamps/potion.jpg", alt: "Potion Bottle", emoji: "⚗️" },
+  "3": { src: "/images/diary-stamps/scroll.jpg", alt: "Magical Scroll", emoji: "📜" },
+}
+
 export const ENTRIES_STORAGE_KEY = "magic-diary-entries"
 
 function loadEntries(): DiaryEntry[] {
@@ -21,17 +34,27 @@ function loadEntries(): DiaryEntry[] {
     // (commit <419d463) won't have `lumiReply` / `lumiLanguage`. Fill
     // them in with `null` so downstream code (diary-card) can render
     // the optional Lumi panel without crashing on `undefined`.
-    return parsed.map((e) => ({
-      id: e.id ?? String(Date.now()),
-      title: e.title ?? "",
-      body: e.body ?? "",
-      category: e.category ?? "Diary",
-      dateLabel: e.dateLabel ?? "Today",
-      mood: (e.mood ?? "happy") as DiaryEntry["mood"],
-      stickers: Array.isArray(e.stickers) ? e.stickers : [],
-      lumiReply: e.lumiReply ?? null,
-      lumiLanguage: e.lumiLanguage ?? null,
-    }))
+    //
+    // Iteration 10: also migrate `stamp` (the optional inline entry
+    // badge). New entries created in the editor don't have one; only
+    // the 3 demo entries (id 1, 2, 3) do. If the parsed entry
+    // matches a demo id, re-attach the static stamp mapping so the
+    // badge survives a localStorage round-trip.
+    return parsed.map((e) => {
+      const stamp = e.stamp ?? STAMP_BY_ENTRY_ID[e.id ?? ""]
+      return {
+        id: e.id ?? String(Date.now()),
+        title: e.title ?? "",
+        body: e.body ?? "",
+        category: e.category ?? "Diary",
+        dateLabel: e.dateLabel ?? "Today",
+        mood: (e.mood ?? "happy") as DiaryEntry["mood"],
+        stickers: Array.isArray(e.stickers) ? e.stickers : [],
+        lumiReply: e.lumiReply ?? null,
+        lumiLanguage: e.lumiLanguage ?? null,
+        stamp,
+      }
+    })
   } catch {
     return MOCK_ENTRIES
   }
