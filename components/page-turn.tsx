@@ -1,8 +1,24 @@
 "use client"
 
 /**
- * PageTurn — Iteration 13 (Issue: full editor spread collision)
- * -------------------------------------------------------------
+ * PageTurn — Iteration 14 (Issue: flash of 3D then snap to mobile)
+ * ---------------------------------------------------------------
+ * Iteration 14 removes the "mobile vertical list" fallback that
+ * caused a one-frame flash of the desktop 3D page-turn followed
+ * by a snap to a simple vertical list whenever the user's
+ * viewport reported < 768px after the initial SSR render
+ * (Telegram 2026-06-11, #16437). User authorised Option A:
+ * **force the desktop 3D page-turn view always.**
+ *
+ * The mobile-list component (<MobileEntryList>) is kept in the
+ * file as dead-but-reachable code so a future mobile UX can
+ * be reintroduced by flipping `useDesktop` back to a
+ * media-query listener — no other changes required.
+ *
+ * Prior iterations still apply:
+ *
+ * Iteration 13 (Issue: full editor spread collision)
+ * ---------------------------------------------------
  * Iteration 13 removes the "full editor spread" that caused the
  * editor to overlap with the last entry when the user had an
  * even number of entries (Telegram 2026-06-11, #16427 / #16431).
@@ -17,22 +33,21 @@
  * quiet "— the end —" page so the editor has no neighbour to
  * collide with.
  *
- * Mobile vs Desktop split + full-screen book feeling still
- * inherits from Iteration 9.
+ * Iteration 12 (Issue: book stage collapsed to 0 height)
+ * ------------------------------------------------------
+ * The book stage uses an explicit `h-[min(70vh,50rem)]` plus
+ * `min-h-[26rem]` floor so the 3D spread always has a real,
+ * view-port-relative height regardless of the flex-column
+ * ancestor's `height: 100%` resolution.
  *
- * Mobile (< md / 768px): simple vertical list of cards. No
- *   3D flip, no Perspective, no click zones — just a flex
- *   column with each entry as a full-width card. The in-page
- *   editor sits at the bottom (so the user can write a new
- *   entry from the same scrollable surface).
- *
- * Desktop (≥ md / 768px): full 3D page-turn. The Perspective
- *   is now 1500px (was 1200px) for a stronger 3D effect, and
- *   there's a clear "← Previous / Spread N of M / Next →" nav
- *   bar at the bottom (always visible, not just on hover).
- *   The right page also has a stronger drop-shadow so the
- *   spine looks like the page is being lifted from the
- *   binding.
+ * Iteration 9 (3D page-turn + always-visible nav)
+ * ------------------------------------------------
+ * Desktop (≥ md / 768px) renders the full 3D page-turn. The
+ * Perspective is 1500px for a strong 3D effect, and there's a
+ * clear "← Previous / Spread N of M / Next →" nav bar at the
+ * bottom (always visible, not just on hover). The right page
+ * has a drop-shadow so the spine looks like the page is being
+ * lifted from the binding.
  *
  * The spread-mapping (2 pages per spread, editor always on ONE
  * page only, never both) is from Iteration 13.
@@ -60,10 +75,6 @@ import { PageCorner } from "./page-corner"
 import { EntryForm, type EntryFormValues } from "./entry-form"
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/hooks/use-i18n"
-
-/** Tailwind's `md` breakpoint = 768px. Single source of truth
- *  (so the JS media query and the Tailwind class agree). */
-const MD_BREAKPOINT_PX = 768
 
 /** Animation duration in ms — must match the CSS `.book-page`
  *  transition-duration in globals.css. */
@@ -210,54 +221,46 @@ function buildSpreads(allEntries: DiaryEntry[]): SpreadPage[][] {
 }
 
 /**
- * useDesktop hook — true when the viewport is ≥ the Tailwind
- * `md` breakpoint (768px).
+ * useDesktop hook — ITERATION 14: simplified.
  *
- * Iteration 11 (Issue 2: desktop page-turn not visible): the
- * previous version returned `null` during SSR / first render to
- * avoid a hydration mismatch, which caused the desktop view to
- * ALWAYS render the mobile-list on the first paint and then
- * "jump" to the 3D page-turn on the second render. On real
- * desktop browsers the effect fires fast enough that the user
- * usually saw the desktop view after a single frame — but
- * two visible side effects made the page-turn look broken:
+ * Previous versions (V11/V12) matched a media query (≥ 768px)
+ * and re-rendered the mobile vertical list if the user was
+ * on a smaller viewport. The flow was:
  *
- *   1. View-source / curl on the production HTML showed the
- *      mobile-list markup (no `page-turn-stage` class) and the
- *      user (and any QA tool like OCR) could not find the
- *      page-turn in the HTML at all. The page-turn only
- *      existed in the client JS bundle, not in the SSR output.
+ *   1. SSR + first client render: `isDesktop = true`
+ *      → renders <DesktopPageTurn> (3D flip)
+ *   2. useEffect on mount: setIsDesktop(mq.matches) based on
+ *      the actual viewport.
+ *   3. If the viewport was < 768px (e.g. mobile Telegram
+ *      iframe, small browser window, browser-zoomed-in desktop
+ *      < 768 logical px), `isDesktop` flipped from true → false
+ *      and the component swapped to <MobileEntryList>.
  *
- *   2. The two-pass render was a small but real "flash of
- *      mobile content" on slower devices / first paint, which
- *      made the desktop view feel janky.
+ * The user observed this swap as a "flash of 3D then snap to
+ * dropdown" (Telegram 2026-06-11, #16437) and explicitly
+ * authorised Option A: **force the desktop 3D view always.**
  *
- * Fix: assume desktop by default (the majority case for a
- * diary app on a real keyboard/laptop). The SSR markup now
- * matches the first client render (both render
- * <DesktopPageTurn>), the hydration is clean, and the
- * production HTML actually contains the `page-turn-stage`
- * class so OCR / view-source can find it. The `useEffect`
- * then refines the state to the actual viewport size — true
- * mobile users get a brief flash of desktop-3D before the
- * mobile list takes over. This is the standard "optimistic
- * desktop" pattern for media-query-gated SSR React and the
- * brief explicitly authorised the trade-off.
+ * Iteration 14: always return `true`. The component tree
+ * unconditionally renders <DesktopPageTurn>. The mobile
+ * vertical-list path (<MobileEntryList>) is no longer
+ * reachable from the render tree, which removes the source
+ * of the flash. <MobileEntryList> is kept in the file as
+ * dead-but-reachable code so a future mobile UX can be
+ * reintroduced without re-deriving the contract.
  *
- * Hydration safety: the initial state is `true` on both
- * server and client, so the server-rendered HTML matches the
- * first client render exactly. No hydration mismatch warning.
+ * Hydration safety: the value is a constant (true) so SSR +
+ * client always agree. No hydration mismatch warning. No
+ * `useEffect` listener either — the function does not depend
+ * on React state.
+ *
+ * Future mobile handling: if a true mobile user complains,
+ * add a Tailwind `hidden md:block` overlay (or `display: none`
+ * for the 3D stage at < 768px) so the 3D markup stays mounted
+ * but the visual surface is suppressed — no component swap,
+ * no flash.
  */
-function useDesktop() {
-  const [isDesktop, setIsDesktop] = useState<boolean>(true)
-  useEffect(() => {
-    const mq = window.matchMedia(`(min-width: ${MD_BREAKPOINT_PX}px)`)
-    const onChange = () => setIsDesktop(mq.matches)
-    onChange() // initial — sync with actual viewport
-    mq.addEventListener("change", onChange)
-    return () => mq.removeEventListener("change", onChange)
-  }, [])
-  return isDesktop
+function useDesktop(): boolean {
+  return true
 }
 
 /**
@@ -745,14 +748,14 @@ function DefaultMobileEmpty() {
 /**
  * PageTurn
  * --------
- * Public entry point. Decides mobile vs desktop via a
- * matchMedia hook. Defaults to the desktop (3D page-turn)
- * view so the SSR HTML contains the `page-turn-stage` markup
- * (see `useDesktop` JSDoc for the full reasoning). The
- * `useEffect` in the hook then refines the state on the
- * client; true mobile users get a one-frame flash of the
- * desktop view before the mobile list takes over, which is
- * the standard "optimistic desktop" trade-off.
+ * Public entry point. Iteration 14 forces the desktop
+ * 3D page-turn view unconditionally (see `useDesktop` JSDoc
+ * for the full reasoning). The mobile-list path
+ * (`!isDesktop → <MobileEntryList>`) is preserved as a
+ * one-line guard so a future mobile UX can be reintroduced
+ * by flipping the `useDesktop` return value back to a
+ * media-query listener, without re-deriving the render
+ * contract.
  */
 export function PageTurn({
   entries,
@@ -764,10 +767,12 @@ export function PageTurn({
 }: PageTurnProps) {
   const isDesktop = useDesktop()
 
-  // `useDesktop` defaults to `true` for SSR + first client
-  // render, so this branch is only taken on subsequent
-  // renders once the media-query listener confirms the
-  // viewport is < 768px wide.
+  // `useDesktop` is now a constant `true` (Iteration 14), so
+  // this `!isDesktop` branch is unreachable in normal
+  // operation. It is kept as a one-line guard so a future
+  // mobile UX can be reintroduced by flipping `useDesktop`
+  // back to a media-query listener — no other render-tree
+  // changes required.
   if (!isDesktop) {
     return (
       <MobileEntryList
