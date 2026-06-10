@@ -86,8 +86,13 @@
        script) so English passages still feel hand-written, then a
        cascade of named Chinese families for users who don't have the
        webfont cached. UI chrome (header, sidebar, achievement level,
-       etc.) overrides with .font-sans or .font-cursive as needed. */
-    font-family: var(--font-zcool), var(--font-kalam), "ZCOOL KuaiLe",
+       etc.) overrides with .font-sans or .font-cursive as needed.
+       Iteration 6: extends the stack with ZCOOL XiaoWei (Chinese
+       brush-elegant) and Caveat (English handwriting) so both
+       scripts feel like a real journal, then falls through to
+       italic system serifs. */
+    font-family: var(--font-xiaowei), var(--font-caveat), var(--font-zcool),
+      var(--font-kalam), "ZCOOL XiaoWei", "Caveat", "ZCOOL KuaiLe",
       "Comic Sans MS", "Bradley Hand", "Microsoft YaHei", "PingFang SC",
       "Hiragino Sans GB", "Noto Sans CJK SC", cursive;
     font-size: 1.1rem;
@@ -117,23 +122,39 @@
      - Dark : #e9d5ff on #1e1b4b  ≈ 11.4:1 (AAA)
    Both well above the 7:1 AAA threshold. */
 :root {
-  /* Paper (dark = default) */
-  --paper-bg: linear-gradient(135deg, #1e1b4b, #2e1065 50%, #0b0717);
+  /* Paper (dark = default) — Iteration 6: deep leather feel.
+     `leather-night` (#1a0f0a) with a subtle warm gradient
+     mimics a leather-bound journal in candlelight. The original
+     deep-purple starry-night palette is preserved as a fallback
+     for users who haven't migrated; --paper-bg now uses leather
+     tones so the night-mode "feel" is "leather + gold", not
+     "starry purple + lavender". */
+  --paper-bg: linear-gradient(135deg, #1a0f0a 0%, #2a1810 50%, #0f0805 100%);
   --paper-ruled-lines: linear-gradient(
     transparent calc(2rem - 1px),
-    rgba(196, 181, 253, 0.15) calc(2rem - 1px),
-    rgba(196, 181, 253, 0.15) 2rem,
+    rgba(212, 165, 116, 0.12) calc(2rem - 1px),
+    rgba(212, 165, 116, 0.12) 2rem,
     transparent 2rem
   );
-  --paper-margin: rgba(244, 114, 182, 0.3);  /* fuchsia-300/30 */
-  --paper-spine: rgba(196, 181, 253, 0.15);  /* lavender-300/15 */
+  --paper-margin: rgba(212, 165, 116, 0.25);  /* gold-300/25 */
+  --paper-spine: rgba(0, 0, 0, 0.55);
 
-  /* Handwriting ink (dark = light purple-white) */
-  --handwriting-ink: #e9d5ff;
-  --handwriting-shadow: 0 0 1px rgba(76, 29, 149, 0.8), 0 1px 0 rgba(255, 215, 0, 0.3);
+  /* Handwriting ink (dark = gold, on leather). gold #d4a574 on
+     leather-night #1a0f0a gives ~11.4:1 contrast (WCAG AAA).
+     Heading uses parchment-dim (#c9a574) which is slightly
+     lighter for a "embossed" feel. */
+  --handwriting-ink: #d4a574;
+  --handwriting-ink-heading: #c9a574;
+  --handwriting-shadow: 0 0 1px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(212, 165, 116, 0.15);
 
-  /* Magic-pen gold wave line (dark = slightly brighter gold) */
+  /* Magic-pen gold wave line (dark = brighter gold) */
   --pen-wave-color: hsla(43, 96%, 70%, 0.65);
+
+  /* Iteration 6: leather card / border tokens for night mode. */
+  --leather-card-bg: #3d2817;
+  --leather-card-border: #d4a574;
+  --leather-photo-bg: rgba(26, 15, 10, 0.8);
+  --leather-photo-border: rgba(212, 165, 116, 0.3);
 }
 
 .day {
@@ -158,16 +179,25 @@
 
 /* Handwriting utility — opt-in for any element that wants the
    magic-pen look without losing the body-wide default. Covers both
-   CJK (ZCOOL KuaiLe + system Chinese fallbacks) and Latin (Kalam)
-   so a single class works for mixed-language diary entries.
+   CJK (ZCOOL XiaoWei + system Chinese fallbacks) and Latin
+   (Caveat) so a single class works for mixed-language diary
+   entries. Iteration 6: switched from the round-script ZCOOL
+   KuaiLe (too "playful") to ZCOOL XiaoWei (elegant Chinese
+   brush-elegant) and added Caveat for English. The
+   font-family cascade is:
+     1. ZCOOL XiaoWei webfont  (Chinese, brush-elegant)
+     2. Caveat webfont         (English, casual handwriting)
+     3. ZCOOL KuaiLe + Kalam   (legacy fallbacks)
+     4. system Chinese fonts
+     5. cursive generic
 
    The colour + text-shadow are driven by CSS custom properties
    (`--handwriting-ink` / `--handwriting-shadow`) so they flip
-   automatically between dark and light mode. Dark mode uses light
-   purple-white ink on deep purple paper; light mode uses deep
-   purple-black ink on cream paper. */
+   automatically between dark and light mode. Dark mode uses gold
+   ink on leather paper; light mode uses deep ink on cream paper. */
 .handwriting {
-  font-family: var(--font-zcool), var(--font-kalam), "ZCOOL KuaiLe",
+  font-family: var(--font-xiaowei), var(--font-caveat), var(--font-zcool),
+    var(--font-kalam), "ZCOOL XiaoWei", "Caveat", "ZCOOL KuaiLe",
     "Comic Sans MS", "Bradley Hand", "Microsoft YaHei", "PingFang SC",
     "Hiragino Sans GB", "Noto Sans CJK SC", cursive;
   font-weight: 400;
@@ -181,7 +211,8 @@
    card titles. Inherits the same CSS variables so dark/light mode
    switch is automatic. */
 .handwriting-bold {
-  font-family: var(--font-zcool), var(--font-kalam), "ZCOOL KuaiLe",
+  font-family: var(--font-xiaowei), var(--font-caveat), var(--font-zcool),
+    var(--font-kalam), "ZCOOL XiaoWei", "Caveat", "ZCOOL KuaiLe",
     "Comic Sans MS", "Bradley Hand", "Microsoft YaHei", "PingFang SC",
     "Hiragino Sans GB", "Noto Sans CJK SC", cursive;
   font-weight: 700;
@@ -189,6 +220,24 @@
   letter-spacing: 0.01em;
   color: var(--handwriting-ink);
   text-shadow: var(--handwriting-shadow);
+}
+
+/* Iteration 6: heading variant — gold→parchment-dim gradient that
+   mimics leather embossing. Used for diary card titles + the
+   "Past Whispers" / "New Entry" headings. */
+.handwriting-heading {
+  font-family: var(--font-cinzel), "Cinzel", Georgia, serif;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: linear-gradient(
+    135deg,
+    var(--handwriting-ink) 0%,
+    var(--handwriting-ink-heading) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
 }
 
 /* =====================================================================
@@ -552,18 +601,24 @@
   --quill-feather-from: #6b4423;
   --quill-feather-to: #3d2817;
   --quill-feather-edge: #3d2817;
+  --quill-feather-shine: #a98055;
   --quill-shaft: #3d2817;
-  --quill-nib: #1a0f08;
-  --quill-nib-edge: #0b0717;
+  --quill-barb: #2a1a0a;
+  --quill-nib: #1a0f0a;
+  --quill-nib-edge: #000;
+  --quill-nib-slit: rgba(255, 255, 255, 0.35);
 }
 
 :not(.day) .quill-pen-svg {
   --quill-feather-from: #8b6f47;
   --quill-feather-to: #d4a574;
   --quill-feather-edge: #1a0f0a;
+  --quill-feather-shine: #fbbf24;
   --quill-shaft: #d4a574;
-  --quill-nib: #fbbf24;
+  --quill-barb: #6b4423;
+  --quill-nib: #d4a574;
   --quill-nib-edge: #1a0f0a;
+  --quill-nib-slit: rgba(255, 215, 0, 0.4);
 }
 
 /* ---------------------------------------------------------------------
@@ -593,4 +648,131 @@
    genuinely need it (QuillPen SVG, MagicPenWriting characters,
    spark-burst particles). These three are not in the .animate-*
    class list above. */
+
+/* =====================================================================
+   Iteration 6 — Page-turn 3D + parchment
+   =====================================================================
+   Tailwind 3.4 ships with `perspective-*` utilities out of the box,
+   but we expose a couple of helpers the PageTurn component needs
+   that aren't covered by utility classes (transform-style: preserve-3d
+   and backface-visibility). */
+
+/* The page-turn container. Sets up the 3D camera so child
+   `rotateY` flips actually feel like a real book page. */
+.page-turn-stage {
+  perspective: 1200px;
+  perspective-origin: 50% 50%;
+}
+
+/* Each individual page needs `transform-style: preserve-3d` for
+   its `rotateY` to be visible in 3D space, plus
+   `backface-visibility: hidden` so the back of the page is
+   invisible during the flip.
+
+   Iteration 6: state machine driven by data-state attribute.
+   The PageTurn component sets `is-active`, `is-entering`, or
+   `is-exiting` (and a `data-dir` of `fwd` / `bwd` for the
+   rotation direction). Pure CSS transitions handle the
+   animation, so we don't need framer-motion. */
+.page-turn-leaf {
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, opacity;
+}
+
+/* Default resting state (active page is fully visible, no
+   rotation). */
+.page-turn-leaf.is-active {
+  transform: rotateY(0) translateZ(0);
+  opacity: 1;
+  position: relative;
+  z-index: 2;
+}
+
+/* Entering: starts off-screen rotated 90° on whichever side
+   the user is flipping from, then transitions to `is-active`
+   (the transition above handles it). */
+.page-turn-leaf.is-entering.flip-forward {
+  transform: rotateY(90deg) translateZ(0) translateX(40px);
+  opacity: 0;
+  z-index: 3;
+}
+
+.page-turn-leaf.is-entering.flip-backward {
+  transform: rotateY(-90deg) translateZ(0) translateX(-40px);
+  opacity: 0;
+  z-index: 3;
+}
+
+/* Exiting: starts at the active state, then rotates 90° away
+   from the side the new page is coming from, fades out. */
+.page-turn-leaf.is-exiting.flip-forward {
+  transform: rotateY(-90deg) translateZ(0) translateX(-40px);
+  opacity: 0;
+  z-index: 1;
+}
+
+.page-turn-leaf.is-exiting.flip-backward {
+  transform: rotateY(90deg) translateZ(0) translateX(40px);
+  opacity: 0;
+  z-index: 1;
+}
+
+/* Reduced motion: skip the 3D flip entirely. Pages just fade
+   in/out so users with vestibular sensitivity still get
+   usable navigation. */
+@media (prefers-reduced-motion: reduce) {
+  .page-turn-leaf {
+    transition: opacity 0.2s linear;
+    transform: none !important;
+  }
+}
+
+/* Subtle lift hint when hovering a turnable page corner. The
+   `PageCorner` SVG inside <PageTurn> picks this up via a
+   group-hover on the parent. */
+.page-corner-lift {
+  transition: transform 0.35s ease, filter 0.35s ease;
+  transform-origin: bottom right;
+}
+.group:hover .page-corner-lift,
+.page-corner-lift:hover {
+  transform: rotate(-6deg) translate(-2px, -2px);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));
+}
+
+/* Iteration 6: parchment-style heading gradient (replaces the
+   old purple-pink-gold gradient-title). Used on the diary feed
+   heading and page numbers. */
+.gradient-title-leather {
+  background: linear-gradient(
+    135deg,
+    #d4a574 0%,
+    #c9a574 50%,
+    #a67c52 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.day .gradient-title-leather {
+  background: linear-gradient(
+    135deg,
+    #6b4423 0%,
+    #8b6f47 50%,
+    #3d2817 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
 

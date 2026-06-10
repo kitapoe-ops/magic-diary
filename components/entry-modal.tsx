@@ -61,6 +61,20 @@ const PHOTO_SLOT_ORDER: PhotoSlotKind[] = [
 ]
 
 /**
+ * Iteration 6 (Bug 4): the four image01-generated photos that
+ * pre-fill the diary. These live in `public/images/quill-slots/`
+ * and are generated in parallel by Subagent A; the <PhotoSlot>
+ * component gracefully falls back to the "Tap to add photo"
+ * placeholder when the file is missing.
+ */
+const DEFAULT_PHOTOS: DiaryPhoto[] = [
+  { url: "/images/quill-slots/portrait-wand.jpg", w: 300, h: 400, slot: "portrait-3x4" },
+  { url: "/images/quill-slots/landscape-broom.jpg", w: 400, h: 300, slot: "landscape-4x3" },
+  { url: "/images/quill-slots/square-hat.jpg", w: 200, h: 200, slot: "square-stamp" },
+  { url: "/images/quill-slots/banner-owl.jpg", w: 600, h: 200, slot: "wide-banner" },
+]
+
+/**
  * Tiny wrapper that defers rendering the <QuillPen> until the
  * textarea ref has actually been populated. We can't just write
  * `bodyRef.current && <QuillPen />` in JSX because refs aren't
@@ -119,7 +133,20 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
       setBody(initial?.body ?? "")
       setMood(initial?.mood ?? "happy")
       setSelectedStickers(initial?.stickers ?? [])
-      setPhotos(initial?.photos ?? [])
+      // Iteration 6 (Bug 4): when the user opens "New Entry"
+      // (no `initial` passed), pre-fill the four photo slots
+      // with the image01-generated placeholders so the editor
+      // shows real images on first open. If the user is editing
+      // an existing entry, we use that entry's `photos` array
+      // (which may already have user-attached images or the
+      // pre-filled placeholders from the demo data).
+      if (initial?.photos && initial.photos.length > 0) {
+        setPhotos(initial.photos)
+      } else if (!initial) {
+        setPhotos(DEFAULT_PHOTOS)
+      } else {
+        setPhotos([])
+      }
       setCasting(false)
       setLumiReply(null)
       setLumiError(null)

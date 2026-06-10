@@ -82,7 +82,17 @@ export const MOCK_ENTRIES: DiaryEntry[] = [
     stickers: ["🌈", "⭐", "✨"],
     lumiReply: null,
     lumiLanguage: null,
-    photos: [],
+    // Iteration 6: pre-filled with image01-generated photos (Bug
+    // 4). Each entry gets 1-2 photos so the diary looks alive on
+    // first load. The URLs reference files in
+    // `public/images/quill-slots/`. Subagent A generates them in
+    // parallel; if the file is missing at runtime the
+    // <DiaryCard> + <PhotoSlot> gracefully fall back to the
+    // "Tap to add photo" placeholder.
+    photos: [
+      { url: "/images/quill-slots/portrait-wand.jpg", w: 300, h: 400, slot: "portrait-3x4" },
+      { url: "/images/quill-slots/landscape-broom.jpg", w: 400, h: 300, slot: "landscape-4x3" },
+    ],
   },
   {
     id: "2",
@@ -94,7 +104,9 @@ export const MOCK_ENTRIES: DiaryEntry[] = [
     stickers: ["💜", "💖", "🦄", "🌸"],
     lumiReply: null,
     lumiLanguage: null,
-    photos: [],
+    photos: [
+      { url: "/images/quill-slots/square-hat.jpg", w: 200, h: 200, slot: "square-stamp" },
+    ],
   },
   {
     id: "3",
@@ -106,7 +118,9 @@ export const MOCK_ENTRIES: DiaryEntry[] = [
     stickers: ["⭐", "👑", "🌟", "✨"],
     lumiReply: null,
     lumiLanguage: null,
-    photos: [],
+    photos: [
+      { url: "/images/quill-slots/banner-owl.jpg", w: 600, h: 200, slot: "wide-banner" },
+    ],
   },
 ]
 

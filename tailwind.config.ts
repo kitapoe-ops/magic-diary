@@ -49,6 +49,41 @@ const config: Config = {
           "Georgia",
           "serif",
         ],
+        // Iteration 6 — English handwriting for diary body / photo
+        // captions / Lumi reply text. Caveat is a casual hand-
+        // written script that feels like a real pen. Loaded via
+        // next/font/google in app/layout.tsx as `--font-caveat`.
+        caveat: [
+          "var(--font-caveat)",
+          "\"Caveat\"",
+          "\"Caveat Brush\"",
+          "cursive",
+        ],
+        // Iteration 6 — Chinese handwriting (XiaoWei = thin-elegant
+        // brush style) for journal entries. Loaded via
+        // next/font/google as `--font-xiaowei`.
+        xiaowei: [
+          "var(--font-xiaowei)",
+          "\"ZCOOL XiaoWei\"",
+          "\"Ma Shan Zheng\"",
+          "\"KaiTi\"",
+          "\"STKaiti\"",
+          "\"Noto Serif CJK SC\"",
+          "\"PingFang SC\"",
+          "serif",
+        ],
+        // Iteration 6 — Chinese brush-style (Ma Shan Zheng) for
+        // special / celebratory moments. Heavier than XiaoWei.
+        mashanzheng: [
+          "var(--font-mashanzheng)",
+          "\"Ma Shan Zheng\"",
+          "\"ZCOOL XiaoWei\"",
+          "\"KaiTi\"",
+          "\"STKaiti\"",
+          "\"Noto Serif CJK SC\"",
+          "\"PingFang SC\"",
+          "cursive",
+        ],
       },
       // Iteration 5: Hogwarts colour tokens. These are kept as
       // explicit hex values (not CSS variables) so they survive

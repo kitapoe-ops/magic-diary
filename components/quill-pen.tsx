@@ -456,41 +456,116 @@ export function QuillPen({
         }}
       >
         <defs>
+          {/* Feather fill: warm leather brown in day mode, gold-
+              tinted in dark mode. Driven by CSS variables so
+              theme switching is automatic. */}
           <linearGradient id="quill-feather" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="var(--quill-feather-from, #6b4423)" />
             <stop offset="100%" stopColor="var(--quill-feather-to, #3d2817)" />
           </linearGradient>
+          {/* Soft highlight gradient used on the spine of the
+              feather to give it volume. */}
+          <linearGradient id="quill-feather-shine" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="var(--quill-feather-shine, #8b6f47)" stopOpacity="0.65" />
+            <stop offset="100%" stopColor="var(--quill-feather-shine, #8b6f47)" stopOpacity="0" />
+          </linearGradient>
         </defs>
-        {/* Feather body */}
+
+        {/* Feather body — one single curved organic shape (the
+            "vane"), not a stack of parallel lines. The shape
+            starts narrow at the nib end (bottom-right) and
+            widens to a leaf-like curve at the top-left. The
+            silhouette is asymmetric so it doesn't look like a
+            comb. */}
         <path
-          d="M5,15 Q15,5 30,5 Q45,10 50,25 L48,40 L20,45 Z"
+          d="M 8,46 C 8,28 18,8 38,5 C 50,4 55,12 54,22 C 53,32 47,40 36,44 C 28,46 18,47 8,46 Z"
           fill="url(#quill-feather)"
           stroke="var(--quill-feather-edge, #3d2817)"
-          strokeWidth={0.5}
+          strokeWidth={0.6}
         />
-        {/* Feather barbs */}
-        <g stroke="var(--quill-feather-edge, #3d2817)" strokeWidth={0.6} fill="none" opacity="0.7">
-          <path d="M12,14 L22,10" />
-          <path d="M14,18 L26,12" />
-          <path d="M16,22 L30,14" />
-          <path d="M18,26 L34,16" />
-          <path d="M20,30 L36,18" />
-          <path d="M22,34 L36,20" />
-          <path d="M24,38 L36,24" />
-        </g>
-        {/* Shaft */}
+        {/* Inner highlight on the feather vane — gives it the
+            "fluffy" volume that real feathers have. */}
         <path
-          d="M22,42 L52,52"
+          d="M 14,42 C 14,26 22,12 38,9 C 46,9 50,14 50,20 C 49,28 44,34 36,38 C 28,41 20,42 14,42 Z"
+          fill="url(#quill-feather-shine)"
+          opacity={0.7}
+        />
+
+        {/* Diagonal barbs radiating FROM the central rachis (the
+            shaft). Each barb starts on the rachis and points
+            outward to the feather edge, at varying angles so
+            the texture looks organic, not parallel-comb. The
+            barbs are split into two groups: ABOVE the rachis
+            (pointing up-and-left) and BELOW the rachis
+            (pointing down-and-left). */}
+        <g
+          stroke="var(--quill-barb, #3d2817)"
+          strokeWidth={0.55}
+          strokeLinecap="round"
+          fill="none"
+          opacity="0.7"
+        >
+          {/* ABOVE rachis — angles 130° to 200° from the nib */}
+          <path d="M 10,44 L 16,30" />
+          <path d="M 13,42 L 21,26" />
+          <path d="M 17,39 L 27,20" />
+          <path d="M 22,35 L 33,14" />
+          <path d="M 28,30 L 40,9" />
+          <path d="M 35,23 L 47,8" />
+          <path d="M 42,17 L 51,11" />
+          {/* BELOW rachis — angles 200° to 250° from the nib */}
+          <path d="M 11,45 L 13,38" />
+          <path d="M 15,43 L 18,33" />
+          <path d="M 20,40 L 25,28" />
+          <path d="M 26,36 L 32,22" />
+          <path d="M 33,30 L 41,16" />
+          <path d="M 41,22 L 50,12" />
+        </g>
+
+        {/* Central rachis (shaft) — the spine that runs down the
+            middle of the feather from the tip of the vane to
+            the nib. Slightly thicker than the barbs so it
+            reads as a single continuous line, not a barb. */}
+        <path
+          d="M 9,45.5 C 22,42 36,30 49,14"
+          fill="none"
+          stroke="var(--quill-shaft, #3d2817)"
+          strokeWidth={1.4}
+          strokeLinecap="round"
+          opacity="0.95"
+        />
+
+        {/* Lower shaft extension — runs from the feather base
+            down to the nib. */}
+        <line
+          x1="9"
+          y1="45.5"
+          x2="52"
+          y2="52"
           stroke="var(--quill-shaft, #3d2817)"
           strokeWidth={2}
           strokeLinecap="round"
         />
-        {/* Nib tip */}
+
+        {/* Nib — small dark triangle at the tip. Very dark in
+            day mode (#1a0f0a), gold in night mode (#d4a574)
+            so the pen "writes" in the right ink colour. */}
         <path
-          d="M50,50 L55,55 L52,57 L48,53 Z"
-          fill="var(--quill-nib, #2a1a0a)"
-          stroke="var(--quill-nib-edge, #1a0f08)"
+          d="M 49,50 L 56,53 L 53,56 L 47,53 Z"
+          fill="var(--quill-nib, #1a0f0a)"
+          stroke="var(--quill-nib-edge, #000)"
           strokeWidth={0.5}
+        />
+
+        {/* Tiny ink highlight on the nib slit — a hairline that
+            gives the nib a 3D point. */}
+        <line
+          x1="49.5"
+          y1="52"
+          x2="55"
+          y2="54.5"
+          stroke="var(--quill-nib-slit, rgba(255,255,255,0.35))"
+          strokeWidth={0.4}
         />
       </svg>
     </div>

@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Quicksand, Pacifico, Kalam, ZCOOL_KuaiLe, Cinzel, Crimson_Text } from "next/font/google"
+import { Quicksand, Pacifico, Kalam, ZCOOL_KuaiLe, Cinzel, Crimson_Text, Caveat, ZCOOL_XiaoWei, Ma_Shan_Zheng } from "next/font/google"
 import "./globals.css"
 
 const quicksand = Quicksand({
@@ -54,6 +54,36 @@ const crimson = Crimson_Text({
   style: ["normal", "italic"],
 })
 
+// Iteration 6 — English handwriting (Bug 2). Caveat is a casual
+// hand-written script that feels like a real pen. Used for diary
+// body, photo slot captions, and Lumi reply text. Two weights
+// (regular + bold) is plenty.
+const caveat = Caveat({
+  subsets: ["latin"],
+  variable: "--font-caveat",
+  weight: ["400", "600", "700"],
+})
+
+// Iteration 6 — Chinese handwriting (Bug 2). ZCOOL XiaoWei is
+// Google Fonts' elegant thin brush-style face — reads like real
+// Chinese calligraphy. Used for journal entries.
+const xiaowei = ZCOOL_XiaoWei({
+  subsets: ["latin"],
+  variable: "--font-xiaowei",
+  weight: ["400"],
+})
+
+// Iteration 6 — Chinese brush-style (Bug 2). Ma Shan Zheng is a
+// heavier, more dramatic Chinese brush face. Used for "special
+// moments" / celebratory headings. next/font/google only
+// exposes the `latin` subset for this family; the actual CJK
+// glyphs come from the system fallback chain in tailwind.config.
+const mashanzheng = Ma_Shan_Zheng({
+  subsets: ["latin"],
+  variable: "--font-mashanzheng",
+  weight: ["400"],
+})
+
 export const metadata: Metadata = {
   title: "✨ Magic Diary ✨",
   description: "A magical diary full of sparkles, spells, and wonderful memories!",
@@ -76,9 +106,11 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${quicksand.variable} ${pacifico.variable} ${kalam.variable} ${zcool.variable} ${cinzel.variable} ${crimson.variable} bg-background`}
+      className={`${quicksand.variable} ${pacifico.variable} ${kalam.variable} ${zcool.variable} ${cinzel.variable} ${crimson.variable} ${caveat.variable} ${xiaowei.variable} ${mashanzheng.variable} dark:bg-leather-night bg-parchment`}
     >
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased dark:bg-leather-night dark:text-gold bg-parchment text-leather-deep min-h-screen">
+        {children}
+      </body>
     </html>
   )
 }

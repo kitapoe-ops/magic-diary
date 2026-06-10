@@ -11,3 +11,7 @@ node_modules
 tsconfig.tsbuildinfo
 build-output.txt
 PHASE_5_SUMMARY_DRAFT.md
+PHASE_6_SUMMARY_DRAFT.md
+# Raw image-01 candidates (only commit the 4 *_pick*.jpg winners)
+public/images/quill-slots/*_[0-9].jpg
+public/images/quill-slots/gen_log_*.txt
