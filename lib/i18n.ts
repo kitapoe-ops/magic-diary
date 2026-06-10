@@ -79,6 +79,11 @@ export type Dict = {
   spreadLabel: (current: number, total: number) => string
   editorInviteCta: string
   editorPageLabel: string
+  // Iteration 13: blank-page sentinel copy (rendered on the
+  // right side of a [EDITOR, BLANK] spread when entries is
+  // even, so the editor never collides with past entries).
+  blankPageHint: string
+  blankPageEnd: string
   modalAiLanguage: string
   modalAiLanguageHint: string
   modalAiError: string
@@ -202,6 +207,9 @@ const en: Dict = {
   spreadLabel: (current, total) => `Spread ${current} of ${total}`,
   editorInviteCta: "Begin a fresh page...",
   editorPageLabel: "New",
+  // Iteration 13: blank-page sentinel copy
+  blankPageHint: "you have reached the last written page",
+  blankPageEnd: "The End",
   modalAiLanguage: "Reply language",
   modalAiLanguageHint: "Chinese / English",
   modalAiError: "Lumi couldn't reply right now — please try again 💜",
@@ -317,6 +325,9 @@ const zh: Dict = {
   spreadLabel: (current, total) => `第 ${current} 個跨頁，共 ${total} 個`,
   editorInviteCta: "展開新嘅一頁...",
   editorPageLabel: "新",
+  // Iteration 13: blank-page sentinel copy
+  blankPageHint: "你已經翻到最後一頁",
+  blankPageEnd: "全書完",
   modalAiLanguage: "AI 回覆語言",
   modalAiLanguageHint: "中文 / 英文",
   modalAiError: "露米依家覆唔到你，遲啲再試 💜",

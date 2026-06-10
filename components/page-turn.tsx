@@ -1,9 +1,24 @@
 "use client"
 
 /**
- * PageTurn — Iteration 9 (Issues 1, 2)
- * ------------------------------------
- * Mobile vs Desktop split + full-screen book feeling.
+ * PageTurn — Iteration 13 (Issue: full editor spread collision)
+ * -------------------------------------------------------------
+ * Iteration 13 removes the "full editor spread" that caused the
+ * editor to overlap with the last entry when the user had an
+ * even number of entries (Telegram 2026-06-11, #16427 / #16431).
+ *
+ * New buildSpreads rules (user-confirmed option A):
+ *   - 0 entries  → [[EDITOR, EDITOR]]   (single full-editor spread)
+ *   - odd count  → ... [last, EDITOR]   (editor on right)
+ *   - even count → ... [EDITOR, BLANK]  (editor on left, blank sentinel right)
+ *
+ * The editor NEVER occupies both pages. The right-side blank
+ * sentinel is a new <BlankPage> sub-component that renders a
+ * quiet "— the end —" page so the editor has no neighbour to
+ * collide with.
+ *
+ * Mobile vs Desktop split + full-screen book feeling still
+ * inherits from Iteration 9.
  *
  * Mobile (< md / 768px): simple vertical list of cards. No
  *   3D flip, no Perspective, no click zones — just a flex
@@ -19,17 +34,22 @@
  *   spine looks like the page is being lifted from the
  *   binding.
  *
- * The spread-mapping (2 pages per spread, editor on the last
- * empty spread) is unchanged from Iteration 8.
+ * The spread-mapping (2 pages per spread, editor always on ONE
+ * page only, never both) is from Iteration 13.
  *
  * Spread mapping (3 entries — the user-specified scenario):
  *
  *   Spread 1: Entry 1 (left, "I")  | Entry 2 (right, "II")
  *   Spread 2: Entry 3 (left, "III")| Editor (right, "Begin a fresh page...")
  *
+ * Spread mapping (2 entries — even count → editor + blank sentinel):
+ *
+ *   Spread 1: Entry 1 (left, "I")  | Entry 2 (right, "II")
+ *   Spread 2: Editor (left)        | BLANK sentinel (right, "— the end —")
+ *
  * Spread mapping (0 entries):
  *
- *   Spread 1: Editor (full spread)            ← "Begin a fresh page..."
+ *   Spread 1: Editor (left)        | Editor (right)   ← full editor, brand-new diary
  */
 
 import { useEffect, useRef, useState } from "react"
@@ -120,41 +140,72 @@ function toRoman(n: number): string {
 
 /** Sentinel for "this is the editor page" in the spread tuple. */
 const EDITOR = "EDITOR" as const
-type SpreadPage = DiaryEntry | typeof EDITOR
+
+/** Sentinel for "this page is intentionally blank (end of book)". */
+const BLANK = "BLANK" as const
+
+type SpreadPage = DiaryEntry | typeof EDITOR | typeof BLANK
 
 /**
- * Build the list of spreads. Each spread is a 2-tuple
- * [left, right] where each element is either an entry or the
- * EDITOR sentinel. The last spread's right page is always the
- * editor (so the user has somewhere to write a new entry).
+ * Build the list of spreads. Each spread is a 2-tuple [left, right]
+ * where each slot is either a DiaryEntry, the EDITOR sentinel, or
+ * the BLANK sentinel.
+ *
+ * Rules (Iteration 13, user-confirmed option A — no more "full
+ * editor spread"):
+ *   1. 0 entries: single spread, BOTH pages are EDITOR
+ *      (the user is on a brand new empty diary)
+ *   2. 1 entry:   [entry, EDITOR]
+ *   3. 2 entries: [a, b], then append [EDITOR, BLANK]
+ *   4. 3 entries: [a, b], [c, EDITOR]
+ *   5. 4 entries: [a, b], [c, d], then append [EDITOR, BLANK]
+ *   6. 5 entries: [a, b], [c, d], [e, EDITOR]
+ *   7. N entries: every 2 entries form a spread; the LAST spread's
+ *      right slot is the editor if entries.length is ODD; if
+ *      entries is EVEN, append a new spread [EDITOR, BLANK].
+ *
+ * Editor NEVER occupies both pages (no more "full editor spread").
  *
  * Examples:
- *   buildSpreads([])             → [["EDITOR","EDITOR"]]
- *   buildSpreads([a])            → [[a,"EDITOR"]]
- *   buildSpreads([a,b])          → [[a,b], ["EDITOR","EDITOR"]]
- *   buildSpreads([a,b,c])        → [[a,b], [c,"EDITOR"]]
- *   buildSpreads([a,b,c,d])      → [[a,b], [c,d], ["EDITOR","EDITOR"]]
- *   buildSpreads([a,b,c,d,e])    → [[a,b], [c,d], [e,"EDITOR"]]
+ *   buildSpreads([])             → [[EDITOR, EDITOR]]
+ *   buildSpreads([a])            → [[a, EDITOR]]
+ *   buildSpreads([a, b])         → [[a, b], [EDITOR, BLANK]]
+ *   buildSpreads([a, b, c])      → [[a, b], [c, EDITOR]]
+ *   buildSpreads([a, b, c, d])   → [[a, b], [c, d], [EDITOR, BLANK]]
+ *   buildSpreads([a, b, c, d, e])→ [[a, b], [c, d], [e, EDITOR]]
  */
 function buildSpreads(allEntries: DiaryEntry[]): SpreadPage[][] {
-  // Group entries into 2-per-spread.
+  // Group entries into 2-per-spread. The right slot of the
+  // FINAL spread defaults to EDITOR (the user always has
+  // somewhere to write a new entry — that's the single
+  // editor page the spec calls for). BLANK is reserved for
+  // the trailing [EDITOR, BLANK] spread appended when the
+  // entry count is even.
   const entrySpreads: SpreadPage[][] = []
   for (let i = 0; i < allEntries.length; i += 2) {
-    const left = allEntries[i] ?? EDITOR
+    const left = allEntries[i] ?? BLANK
     const right = allEntries[i + 1] ?? EDITOR
     entrySpreads.push([left, right])
   }
-  // If no entries at all, the first spread is full editor.
+
+  // Case 1: zero entries → single full-editor spread
   if (entrySpreads.length === 0) {
     return [[EDITOR, EDITOR]]
   }
-  // If the last spread is BOTH entries (no editor placeholder),
-  // append a fresh full-editor spread so the user always has
-  // somewhere to write.
+
+  // Case 2+: 1+ entries
   const last = entrySpreads[entrySpreads.length - 1]
-  if (last[0] !== EDITOR && last[1] !== EDITOR) {
-    entrySpreads.push([EDITOR, EDITOR])
+
+  // If last spread is [entry, entry] (no editor placeholder
+  // — happens when entries.length is even and the loop above
+  // filled both slots with real entries), append a new
+  // [EDITOR, BLANK] spread so the editor has its own
+  // dedicated page and a quiet "end of book" sentinel.
+  const lastHasEditor = last[0] === EDITOR || last[1] === EDITOR
+  if (!lastHasEditor) {
+    entrySpreads.push([EDITOR, BLANK])
   }
+
   return entrySpreads
 }
 
@@ -213,24 +264,28 @@ function useDesktop() {
  * EditorPage
  * ----------
  * A single parchment page that hosts the <EntryForm> for new
- * entries. Used by <PageTurn> on the last spread. In-page
- * editor, no modal chrome.
+ * entries. Used by <PageTurn> on the last spread (desktop
+ * spread-mapping) and at the bottom of the mobile vertical
+ * list. In-page editor, no modal chrome.
  *
- * Two variants:
+ * Two variants (Iteration 13 — "full" variant removed):
  *   • `variant="right"` — one of two pages in a mixed spread
  *     (e.g. "Entry 3 on the left, editor on the right"). The
  *     border on the LEFT edge is suppressed so the page joins
- *     seamlessly with the left page (no double border).
- *   • `variant="full"`  — both pages of the last spread are
- *     the editor (e.g. 2 entries → spread 3 is full editor).
- *     No border suppression.
+ *     seamlessly with the left page (no double border). Also
+ *     used by the mobile vertical list, which has no left
+ *     neighbour, so the border suppression is a no-op there.
+ *   • `variant="left"`  — editor is on the LEFT of a fresh
+ *     spread (used when entry count is even, e.g. 2 entries →
+ *     spread 3 is [EDITOR, BLANK]). The border on the RIGHT
+ *     edge is suppressed.
  */
 function EditorPage({
   variant,
   pageLabel,
   onSave,
 }: {
-  variant: "left" | "right" | "full"
+  variant: "left" | "right"
   pageLabel: string
   onSave: (values: EntryFormValues) => void
 }) {
@@ -263,6 +318,42 @@ function EditorPage({
           onSubmit={onSave}
           submitLabel={t.modalCast}
         />
+      </div>
+    </div>
+  )
+}
+
+/**
+ * BlankPage
+ * ---------
+ * The "end of book" sentinel page (Iteration 13). Renders a
+ * quiet parchment page with a small decorative footer
+ * ("📖 The End" / "翻到底了") and a faded "— you have reached
+ * the last written page —" hint. No interactive elements,
+ * just visual rest so the editor never collides with the last
+ * entry.
+ *
+ * Used when the user has an EVEN number of entries and the
+ * buildSpreads algorithm appends a fresh [EDITOR, BLANK]
+ * spread — the right page is this BlankPage so the editor
+ * (on the left) has no neighbour past-entry to fight with.
+ */
+function BlankPage({ pageLabel }: { pageLabel: string }) {
+  const { t } = useI18n()
+  return (
+    <div className="parchment-page relative flex h-full flex-col items-center justify-center p-4 md:p-5">
+      <PageCorner position="top-left" tone="leather" inline />
+      <PageCorner position="bottom-right" tone="leather" inline />
+      <div className="flex flex-col items-center gap-3 text-leather/40 dark:text-gold/40">
+        <span className="font-cinzel text-3xl tracking-widest">
+          — {pageLabel} —
+        </span>
+        <span className="font-caveat text-base italic">
+          {t.blankPageHint}
+        </span>
+        <span className="font-cinzel text-xs uppercase tracking-[0.3em]">
+          📖 {t.blankPageEnd}
+        </span>
       </div>
     </div>
   )
@@ -390,6 +481,8 @@ function DesktopPageTurn({
 
             const leftIsEditor = spread[0] === EDITOR
             const rightIsEditor = spread[1] === EDITOR
+            const leftIsBlank = spread[0] === BLANK
+            const rightIsBlank = spread[1] === BLANK
             const leftEntryIdx = spreadIdx * 2 + 1
             const rightEntryIdx = spreadIdx * 2 + 2
             const leftLabel = leftIsEditor
@@ -403,9 +496,10 @@ function DesktopPageTurn({
                   entries.findIndex((e) => e === spread[1]) + 1,
                 )
 
-            let editorVariant: "left" | "right" | "full" | "none" = "none"
-            if (leftIsEditor && rightIsEditor) editorVariant = "full"
-            else if (rightIsEditor) editorVariant = "right"
+            // Iteration 13: editor can be "left", "right", or
+            // "none" — the previous "full" variant is gone.
+            let editorVariant: "left" | "right" | "none" = "none"
+            if (rightIsEditor) editorVariant = "right"
             else if (leftIsEditor) editorVariant = "left"
 
             return (
@@ -436,12 +530,12 @@ function DesktopPageTurn({
                   >
                     {leftIsEditor ? (
                       <EditorPage
-                        variant={
-                          editorVariant === "full" ? "full" : "left"
-                        }
+                        variant="left"
                         pageLabel={leftLabel}
                         onSave={onSave}
                       />
+                    ) : leftIsBlank ? (
+                      <BlankPage pageLabel={leftLabel} />
                     ) : (
                       <DiaryCard
                         entry={spread[0] as DiaryEntry}
@@ -482,12 +576,12 @@ function DesktopPageTurn({
                   >
                     {rightIsEditor ? (
                       <EditorPage
-                        variant={
-                          editorVariant === "full" ? "full" : "right"
-                        }
+                        variant="right"
                         pageLabel={rightLabel}
                         onSave={onSave}
                       />
+                    ) : rightIsBlank ? (
+                      <BlankPage pageLabel={rightLabel} />
                     ) : (
                       <DiaryCard
                         entry={spread[1] as DiaryEntry}
@@ -623,9 +717,12 @@ function MobileEntryList({
           />
         ))
       )}
-      {/* In-page editor at the bottom of the mobile list. */}
+      {/* In-page editor at the bottom of the mobile list.
+          `variant="right"` is a no-op border-suppression choice
+          for the mobile case (no left neighbour); the
+          Iteration 13 type union no longer includes "full". */}
       <EditorPage
-        variant="full"
+        variant="right"
         pageLabel={t.editorPageLabel}
         onSave={onSave}
       />
