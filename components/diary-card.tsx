@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils"
 import { useI18n } from "@/hooks/use-i18n"
 import { NotebookPage } from "@/components/notebook-page"
 import { PageCorner } from "./page-corner"
-import { DiaryStamp } from "./diary-stamp"
 
 interface DiaryCardProps {
   entry: DiaryEntry
@@ -42,41 +41,6 @@ export function DiaryCard({ entry, pageLabel, onEdit, onDelete }: DiaryCardProps
       <PageCorner position="top-left" tone="leather" />
       <PageCorner position="bottom-right" tone="leather" />
 
-      {/* Iteration 10: 4 corner stamps (Hogwarts decoration).
-          Absolutely positioned so they don't push the card
-          content. The card already has `position: relative`,
-          so the stamps anchor to its corners. Stamps sit at
-          z-index 1 (CSS rule in globals.css), content above at
-          z-index 2+. */}
-      <DiaryStamp
-        src="/images/diary-stamps/sorting-hat.jpg"
-        alt="Sorting Hat"
-        emojiFallback="🎩"
-        size={32}
-        position="top-left"
-      />
-      <DiaryStamp
-        src="/images/diary-stamps/wand.jpg"
-        alt="Wizard Wand"
-        emojiFallback="🪄"
-        size={32}
-        position="top-right"
-      />
-      <DiaryStamp
-        src="/images/diary-stamps/owl.jpg"
-        alt="Hedwig Owl"
-        emojiFallback="🦉"
-        size={32}
-        position="bottom-left"
-      />
-      <DiaryStamp
-        src="/images/diary-stamps/spellbook.jpg"
-        alt="Spellbook"
-        emojiFallback="📚"
-        size={32}
-        position="bottom-right"
-      />
-
       <div className="mb-3 flex items-start justify-between gap-3">
         {/* date badge — gold gradient like a wax-seal stamp */}
         <span className="rounded-full border border-gold/60 bg-gold/15 px-3 py-1 font-cinzel text-[10px] font-bold uppercase tracking-widest text-gold">
@@ -111,20 +75,6 @@ export function DiaryCard({ entry, pageLabel, onEdit, onDelete }: DiaryCardProps
           >
             {mood?.emoji}
           </span>
-          {/* Iteration 10: optional inline "entry badge" stamp
-              from the demo entry's `stamp?` field. Only the 3
-              demo entries (id 1, 2, 3) have one. Inline, so it
-              sits in the existing metadata row (no new row, no
-              layout shift). */}
-          {entry.stamp && (
-            <DiaryStamp
-              src={entry.stamp.src}
-              alt={entry.stamp.alt}
-              emojiFallback={entry.stamp.emoji}
-              size={22}
-              position="inline"
-            />
-          )}
         </div>
       </div>
 

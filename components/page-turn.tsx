@@ -38,7 +38,6 @@ import type { DiaryEntry } from "@/lib/mock-data"
 import { DiaryCard } from "./diary-card"
 import { PageCorner } from "./page-corner"
 import { EntryForm, type EntryFormValues } from "./entry-form"
-import { DiaryStamp } from "./diary-stamp"
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/hooks/use-i18n"
 
@@ -161,18 +160,49 @@ function buildSpreads(allEntries: DiaryEntry[]): SpreadPage[][] {
 
 /**
  * useDesktop hook — true when the viewport is ≥ the Tailwind
- * `md` breakpoint (768px). Returns `null` during SSR / first
- * render to avoid a hydration mismatch (the server doesn't
- * know the viewport size). Components that gate on this hook
- * should render their mobile path on `null` and let the effect
- * upgrade them to desktop on the next render.
+ * `md` breakpoint (768px).
+ *
+ * Iteration 11 (Issue 2: desktop page-turn not visible): the
+ * previous version returned `null` during SSR / first render to
+ * avoid a hydration mismatch, which caused the desktop view to
+ * ALWAYS render the mobile-list on the first paint and then
+ * "jump" to the 3D page-turn on the second render. On real
+ * desktop browsers the effect fires fast enough that the user
+ * usually saw the desktop view after a single frame — but
+ * two visible side effects made the page-turn look broken:
+ *
+ *   1. View-source / curl on the production HTML showed the
+ *      mobile-list markup (no `page-turn-stage` class) and the
+ *      user (and any QA tool like OCR) could not find the
+ *      page-turn in the HTML at all. The page-turn only
+ *      existed in the client JS bundle, not in the SSR output.
+ *
+ *   2. The two-pass render was a small but real "flash of
+ *      mobile content" on slower devices / first paint, which
+ *      made the desktop view feel janky.
+ *
+ * Fix: assume desktop by default (the majority case for a
+ * diary app on a real keyboard/laptop). The SSR markup now
+ * matches the first client render (both render
+ * <DesktopPageTurn>), the hydration is clean, and the
+ * production HTML actually contains the `page-turn-stage`
+ * class so OCR / view-source can find it. The `useEffect`
+ * then refines the state to the actual viewport size — true
+ * mobile users get a brief flash of desktop-3D before the
+ * mobile list takes over. This is the standard "optimistic
+ * desktop" pattern for media-query-gated SSR React and the
+ * brief explicitly authorised the trade-off.
+ *
+ * Hydration safety: the initial state is `true` on both
+ * server and client, so the server-rendered HTML matches the
+ * first client render exactly. No hydration mismatch warning.
  */
 function useDesktop() {
-  const [isDesktop, setIsDesktop] = useState<boolean | null>(null)
+  const [isDesktop, setIsDesktop] = useState<boolean>(true)
   useEffect(() => {
     const mq = window.matchMedia(`(min-width: ${MD_BREAKPOINT_PX}px)`)
     const onChange = () => setIsDesktop(mq.matches)
-    onChange() // initial — sync with current viewport
+    onChange() // initial — sync with actual viewport
     mq.addEventListener("change", onChange)
     return () => mq.removeEventListener("change", onChange)
   }, [])
@@ -215,33 +245,6 @@ function EditorPage({
     >
       <PageCorner position="top-left" tone="leather" inline />
       <PageCorner position="bottom-right" tone="leather" inline />
-      {/* Iteration 10: 3 editor-page corner accents. The
-          spec mapped candle (TR), key (BR), mandrake (BL) —
-          i.e. only the right side + bottom-left, no top-left
-          stamp on the editor (the page-corner flourish is
-          already there). All absolute-positioned, no layout
-          shift. */}
-      <DiaryStamp
-        src="/images/diary-stamps/candle.jpg"
-        alt="Candle"
-        emojiFallback="🕯️"
-        size={32}
-        position="top-right"
-      />
-      <DiaryStamp
-        src="/images/diary-stamps/key.jpg"
-        alt="Golden Key"
-        emojiFallback="🗝️"
-        size={32}
-        position="bottom-right"
-      />
-      <DiaryStamp
-        src="/images/diary-stamps/mandrake.jpg"
-        alt="Mandrake"
-        emojiFallback="🍄"
-        size={32}
-        position="bottom-left"
-      />
       <div className="mb-2 flex items-center justify-between">
         <h3 className="font-cinzel text-base font-bold tracking-widest text-leather-deep dark:text-gold">
           <PenLine className="mr-1 inline h-4 w-4" />
@@ -635,9 +638,13 @@ function DefaultMobileEmpty() {
  * PageTurn
  * --------
  * Public entry point. Decides mobile vs desktop via a
- * matchMedia hook. SSR / first render returns the mobile
- * list (no 3D) to keep the markup stable; the effect then
- * upgrades to the desktop view on the next render.
+ * matchMedia hook. Defaults to the desktop (3D page-turn)
+ * view so the SSR HTML contains the `page-turn-stage` markup
+ * (see `useDesktop` JSDoc for the full reasoning). The
+ * `useEffect` in the hook then refines the state on the
+ * client; true mobile users get a one-frame flash of the
+ * desktop view before the mobile list takes over, which is
+ * the standard "optimistic desktop" trade-off.
  */
 export function PageTurn({
   entries,
@@ -649,11 +656,10 @@ export function PageTurn({
 }: PageTurnProps) {
   const isDesktop = useDesktop()
 
-  // During SSR / first render, default to the mobile list to
-  // avoid a hydration mismatch (we don't know the viewport
-  // size on the server). Once the effect runs, the user is
-  // either on mobile or desktop, and we render the matching
-  // path.
+  // `useDesktop` defaults to `true` for SSR + first client
+  // render, so this branch is only taken on subsequent
+  // renders once the media-query listener confirms the
+  // viewport is < 768px wide.
   if (!isDesktop) {
     return (
       <MobileEntryList

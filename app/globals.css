@@ -550,26 +550,6 @@
 }
 
 /* ---------------------------------------------------------------------
-   2b. Diary stamps (Iteration 10)
-   --------------------------------------------------------------------
-   The 10 Hogwarts-themed stamps sit in 4 corners of every page
-   (4 per page), inline in the metadata row of 3 demo entries
-   (3 badges), and in 3 corners of the editor page (3 accents).
-   All stamps are absolutely positioned, so they don't push
-   content. We just need to make sure the stamp layer sits
-   BETWEEN the paper texture (z ~ auto) and the entry text
-   (z ~ auto too, but layered later in DOM order, so wins on
-   natural stacking). Setting `z-index: 1` on the stamp makes
-   the stacking order explicit so future contributors don't
-   accidentally put a stamp over the entry body. */
-.diary-stamp {
-  z-index: 1;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-  user-select: none;
-  -webkit-user-drag: none;
-}
-
-/* ---------------------------------------------------------------------
    3. Leather book edge / spine helper
    --------------------------------------------------------------------
    The BookSpread component uses a vertical gradient column to

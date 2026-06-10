@@ -19,6 +19,3 @@ tscheck-iter*.txt
 PHASE_10_SUMMARY_DRAFT.md
 # Legacy Hogwarts photo artifacts (deleted from disk, kept ignored for safety)
 public/images/quill-slots/
-
-# Iteration 10 raw stamp candidates (workdir outside the repo)
-output/stamps-raw/
