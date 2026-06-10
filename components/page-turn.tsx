@@ -121,7 +121,7 @@
  */
 
 import { useEffect, useRef, useState } from "react"
-import { ChevronLeft, ChevronRight, BookOpen, PenLine } from "lucide-react"
+import { ChevronLeft, ChevronRight, BookOpen, PenLine, Home } from "lucide-react"
 import type { DiaryEntry } from "@/lib/mock-data"
 import { DiaryCard } from "./diary-card"
 import { PageCorner } from "./page-corner"
@@ -441,6 +441,11 @@ function DesktopPageTurn({
   const safeSpread = Math.min(Math.max(0, currentSpread), totalSpreads - 1)
   const canPrev = safeSpread > 0
   const canNext = safeSpread < totalSpreads - 1
+  // Iteration 17 (Issue: jump back to first spread, Telegram 2026-06-11
+  // #16453 + #16455): user wants a "首頁" (home) button on the nav bar
+  // that snaps back to spread 0 (Entry 1 | Entry 2) without a flip
+  // animation — same enablement rule as Previous (safeSpread > 0).
+  const canFirst = safeSpread > 0
 
   // Mid-animation flag — prevents double-clicks desyncing the
   // state machine.
@@ -475,6 +480,16 @@ function DesktopPageTurn({
       onSpreadChange?.(next)
       setAnimating(null)
     }, ANIM_MS)
+  }
+
+  // Iteration 17: jump straight to spread 0 (the first spread =
+  // Entry 1 / Entry 2 side-by-side for the typical 2-entry case).
+  // No flip animation — a multi-page flip would feel weird for a
+  // "go home" action; instant snap is the right semantics.
+  function goFirst() {
+    if (!canFirst || animating) return
+    setCurrentSpread(0)
+    onSpreadChange?.(0)
   }
 
   return (
@@ -741,6 +756,21 @@ function DesktopPageTurn({
           navigation easy. Iteration 9: moved out of the
           hover-only zone. */}
       <div className="flex items-center justify-between gap-2 rounded-full border-2 border-gold/40 bg-leather/10 px-4 py-2 dark:border-gold/40 dark:bg-leather-night/30">
+        <button
+          type="button"
+          onClick={goFirst}
+          disabled={!canFirst || !!animating}
+          aria-label={t.bookFirstSpread}
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full border-2 px-3 py-1.5 font-caveat text-base transition-colors",
+            canFirst && !animating
+              ? "border-gold/60 bg-gold/10 text-gold hover:bg-gold/20"
+              : "cursor-not-allowed border-leather/20 text-leather/30 dark:border-gold/20 dark:text-gold/30",
+          )}
+        >
+          <Home className="h-4 w-4" />
+          {t.bookFirst}
+        </button>
         <button
           type="button"
           onClick={goPrev}

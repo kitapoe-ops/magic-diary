@@ -76,6 +76,12 @@ export type Dict = {
   bookNext: string
   bookPrevSpread: string
   bookNextSpread: string
+  // Iteration 17: First (Home) spread button — snaps back to
+  // spread 0 (Entry 1 / Entry 2 side-by-side) without a flip
+  // animation. i18n for both the visible label and the
+  // aria-label.
+  bookFirst: string
+  bookFirstSpread: string
   spreadLabel: (current: number, total: number) => string
   editorInviteCta: string
   editorPageLabel: string
@@ -204,6 +210,9 @@ const en: Dict = {
   bookNext: "Next",
   bookPrevSpread: "Previous spread",
   bookNextSpread: "Next spread",
+  // Iteration 17: First (Home) spread button
+  bookFirst: "First",
+  bookFirstSpread: "Go to first page",
   spreadLabel: (current, total) => `Spread ${current} of ${total}`,
   editorInviteCta: "Begin a fresh page...",
   editorPageLabel: "New",
@@ -322,6 +331,9 @@ const zh: Dict = {
   bookNext: "下一頁",
   bookPrevSpread: "上一個跨頁",
   bookNextSpread: "下一個跨頁",
+  // Iteration 17: First (Home) spread button
+  bookFirst: "首頁",
+  bookFirstSpread: "跳到首頁",
   spreadLabel: (current, total) => `第 ${current} 個跨頁，共 ${total} 個`,
   editorInviteCta: "展開新嘅一頁...",
   editorPageLabel: "新",
