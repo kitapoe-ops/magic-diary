@@ -1,7 +1,38 @@
 "use client"
 
 /**
- * PageTurn — Iteration 14 (Issue: flash of 3D then snap to mobile)
+ * PageTurn — Iteration 15 (Issue: click-zone intercepts editor input)
+ * --------------------------------------------------------------------
+ * Iteration 15 fixes a high-priority functional bug (Telegram
+ * 2026-06-11, #16445): on the editor spread the user could
+ * see the new-entry form but could NOT focus or type into the
+ * <textarea>, and they reported that "past diary content looks
+ * like it's overlapping the new editor".
+ *
+ * Root cause: the two invisible click-zone buttons
+ * (`<button>` with `absolute z-20 h-full w-1/2 opacity-0`) on
+ * the right and left halves of the book stage did NOT set
+ * `pointer-events-none`. With opacity-0 they were visually
+ * invisible, but they were still clickable + focusable, so the
+ * right-half button captured every click/focus on the editor
+ * page (which sits on the right pane) before the
+ * <textarea> could see it. On the editor spread the user
+ * sees the form but every click lands on the invisible
+ * button, which is what they perceived as "past diary
+ * overlapping" — the editor pane feels inert and visually
+ * "behind" something.
+ *
+ * Fix: default the click-zones to `pointer-events-none` and
+ * only re-enable `pointer-events-auto` on hover (when the
+ * affordance becomes visible). The disabled-at-boundary case
+ * stays `pointer-events-none` so stale disabled buttons
+ * never shadow interactive elements either. With this change
+ * the <textarea> is fully clickable + focusable on the
+ * editor spread, but the user can still hover the right
+ * half of the book to reveal the next-spread click zone and
+ * click it to flip the page.
+ *
+ * Iteration 14 (Issue: flash of 3D then snap to mobile)
  * ---------------------------------------------------------------
  * Iteration 14 removes the "mobile vertical list" fallback that
  * caused a one-frame flash of the desktop 3D page-turn followed
@@ -616,7 +647,27 @@ function DesktopPageTurn({
         </div>
 
         {/* Click zones — left half goes backward, right half
-            goes forward. Hidden when at the boundary. */}
+            goes forward. Hidden when at the boundary.
+
+            Iteration 15 (Issue: textarea can't accept input):
+            the buttons are `absolute z-20 h-full w-1/2`, so they
+            cover half the book stage each. With opacity-0 they
+            are visually invisible, but the previous version did
+            NOT set `pointer-events-none`, which meant the
+            invisible button was still clickable + focusable.
+            On the editor spread the right click-zone sat on top
+            of the <textarea> and intercepted every click → the
+            user could see the form but couldn't focus or type
+            into it.
+
+            Fix: default to `pointer-events-none` so the
+            invisible button lets clicks pass through to the
+            editor form / diary cards below. Re-enable
+            `pointer-events-auto` only on hover (when the
+            affordance becomes visible). The disabled boundary
+            case stays `pointer-events-none` so a stale disabled
+            button on the first/last spread can't shadow any
+            interactive element either. */}
         <button
           type="button"
           onClick={goPrev}
@@ -625,8 +676,8 @@ function DesktopPageTurn({
           className={cn(
             "absolute left-0 top-0 z-20 h-full w-1/2 transition-opacity",
             !canPrev
-              ? "cursor-default opacity-0"
-              : "opacity-0 hover:opacity-100",
+              ? "pointer-events-none cursor-default opacity-0"
+              : "pointer-events-none opacity-0 hover:pointer-events-auto hover:opacity-100",
           )}
         />
         <button
@@ -637,8 +688,8 @@ function DesktopPageTurn({
           className={cn(
             "absolute right-0 top-0 z-20 h-full w-1/2 transition-opacity",
             !canNext
-              ? "cursor-default opacity-0"
-              : "opacity-0 hover:opacity-100",
+              ? "pointer-events-none cursor-default opacity-0"
+              : "pointer-events-none opacity-0 hover:pointer-events-auto hover:opacity-100",
           )}
         />
       </div>
