@@ -1,30 +1,38 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { X, Sparkles, Settings as SettingsIcon, PenLine } from "lucide-react"
 import { MOODS, STICKERS, type DiaryEntry, type MoodKey } from "@/lib/mock-data"
 import type { Dict } from "@/lib/i18n"
+import type { DiaryPhoto, PhotoSlotKind } from "@/lib/photo-sizes"
+import { PHOTO_SLOT_SIZES, getPhotoSlotSize } from "@/lib/photo-sizes"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useChime } from "@/hooks/use-chime"
 import { useI18n } from "@/hooks/use-i18n"
 import { DEEPSEEK_OPEN_EVENT, DEEPSEEK_TOKEN_KEY } from "./deepseek-settings"
 import { MagicPenWriting } from "./magic-pen-writing"
+import { QuillPen } from "./quill-pen"
+import { PhotoSlot } from "./photo-slot"
+import { PageCorner } from "./page-corner"
 
 interface EntryModalProps {
   open: boolean
   onClose: () => void
   /**
-   * Save handler. The payload includes the optional Lumi reply fields
-   * (`lumiReply`, `lumiLanguage`) so the parent's persisted entry
-   * (localStorage) keeps Lumi's response across reloads. We
+   * Save handler. The payload includes the optional Lumi reply
+   * fields (`lumiReply`, `lumiLanguage`) so the parent's persisted
+   * entry (localStorage) keeps Lumi's response across reloads. We
    * `Pick<DiaryEntry, "lumiReply" | "lumiLanguage">` to widen the
-   * base `Omit<...>` type without losing type-safety on the rest of
-   * the payload.
+   * base `Omit<...>` type without losing type-safety on the rest
+   * of the payload. Iteration 5 also adds the optional `photos`
+   * array.
    */
   onSave: (
     entry: Omit<DiaryEntry, "id" | "dateLabel" | "category"> &
-      Pick<DiaryEntry, "lumiReply" | "lumiLanguage">,
+      Pick<DiaryEntry, "lumiReply" | "lumiLanguage"> & {
+        photos?: DiaryPhoto[]
+      },
   ) => void
   initial?: DiaryEntry | null
 }
@@ -44,6 +52,34 @@ const MOOD_LABEL_KEY: Record<MoodKey, StringDictKey> = {
   loved: "moodLabelLoved",
 }
 
+/** The order in which photo slots are exposed in the modal. */
+const PHOTO_SLOT_ORDER: PhotoSlotKind[] = [
+  "wide-banner",
+  "portrait-3x4",
+  "landscape-4x3",
+  "square-stamp",
+]
+
+/**
+ * Tiny wrapper that defers rendering the <QuillPen> until the
+ * textarea ref has actually been populated. We can't just write
+ * `bodyRef.current && <QuillPen />` in JSX because refs aren't
+ * populated during the same render pass; the wrapper uses a
+ * one-shot state flag to force a re-render after mount.
+ */
+function QuillPenBody({
+  hostRef,
+}: {
+  hostRef: React.MutableRefObject<HTMLTextAreaElement | null>
+}) {
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    if (hostRef.current) setReady(true)
+  }, [hostRef])
+  if (!ready) return null
+  return <QuillPen textareaRef={hostRef as React.RefObject<HTMLTextAreaElement>} />
+}
+
 export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) {
   const { t, locale, setLocale } = useI18n()
   const chime = useChime()
@@ -52,6 +88,7 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
   const [body, setBody] = useState("")
   const [mood, setMood] = useState<MoodKey>("happy")
   const [selectedStickers, setSelectedStickers] = useState<string[]>([])
+  const [photos, setPhotos] = useState<DiaryPhoto[]>([])
 
   const [casting, setCasting] = useState(false)
   const [lumiLoading, setLumiLoading] = useState(false)
@@ -61,6 +98,16 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
 
   // Bump to replay the Lumi reply typewriter animation.
   const [lumiReplayKey, setLumiReplayKey] = useState(0)
+
+  // Ref for the QuillPen to follow the body textarea.
+  const bodyRef = useRef<HTMLTextAreaElement | null>(null)
+  // Refs for each photo slot's hidden file input.
+  const fileInputRefs = useRef<Record<PhotoSlotKind, HTMLInputElement | null>>({
+    "portrait-3x4": null,
+    "landscape-4x3": null,
+    "square-stamp": null,
+    "wide-banner": null,
+  })
 
   useEffect(() => {
     setAiLang(locale === "zh" ? "zh" : "en")
@@ -72,6 +119,7 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
       setBody(initial?.body ?? "")
       setMood(initial?.mood ?? "happy")
       setSelectedStickers(initial?.stickers ?? [])
+      setPhotos(initial?.photos ?? [])
       setCasting(false)
       setLumiReply(null)
       setLumiError(null)
@@ -106,6 +154,7 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
         stickers: selectedStickers.length ? selectedStickers : ["✨"],
         lumiReply: replyToSave,
         lumiLanguage: langToSave,
+        photos: photos.length > 0 ? photos : [],
       })
       onClose()
     }, 700)
@@ -161,6 +210,25 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
     }
   }
 
+  function pickPhotoFile(kind: PhotoSlotKind) {
+    fileInputRefs.current[kind]?.click()
+  }
+
+  function onPhotoSelected(kind: PhotoSlotKind, file: File) {
+    const url = URL.createObjectURL(file)
+    const size = getPhotoSlotSize(kind)
+    const next: DiaryPhoto = { url, w: size.w, h: size.h, slot: kind }
+    setPhotos((prev) => {
+      // If a photo is already in this slot, replace it.
+      const filtered = prev.filter((p) => p.slot !== kind)
+      return [...filtered, next]
+    })
+  }
+
+  function removePhoto(kind: PhotoSlotKind) {
+    setPhotos((prev) => prev.filter((p) => p.slot !== kind))
+  }
+
   return (
     <div
       className="fixed inset-0 z-[9990] flex items-center justify-center p-4"
@@ -168,17 +236,21 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
       aria-modal="true"
       aria-label={initial ? t.modalEditTitle : t.modalNewTitle}
     >
-      <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="glass-card relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl p-6 animate-bounce-in">
+      <div className="notebook-paper relative z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border-2 border-leather/60 p-6 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] dark:border-gold/50">
+        <PageCorner position="top-right" tone="leather" />
+        <PageCorner position="bottom-left" tone="leather" />
+
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="gradient-title text-xl font-bold">
-            <span className="emoji">🪄</span> {initial ? t.modalEditTitle : t.modalNewTitle}
+          <h2 className="font-cinzel text-2xl font-bold tracking-widest text-leather-deep dark:text-gold">
+            <span className="mr-1">🪄</span>
+            {initial ? t.modalEditTitle : t.modalNewTitle}
           </h2>
           <button
             onClick={onClose}
             aria-label={t.dsClose}
-            className="rounded-full bg-secondary/20 p-2 text-secondary hover:bg-secondary/40"
+            className="rounded-full border border-leather/40 bg-leather/10 p-2 text-leather hover:bg-leather/20 dark:border-gold/40 dark:bg-gold/10 dark:text-gold dark:hover:bg-gold/20"
           >
             <X className="h-5 w-5" />
           </button>
@@ -186,7 +258,10 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-secondary" htmlFor="title">
+            <label
+              className="font-cinzel text-xs font-bold uppercase tracking-widest text-leather-deep dark:text-gold"
+              htmlFor="title"
+            >
               {t.modalLabelTitle}
             </label>
             <input
@@ -194,28 +269,41 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={t.modalPlaceholderTitle}
-              className="rounded-2xl border-2 border-border bg-input px-4 py-2.5 text-foreground placeholder:text-muted-foreground focus:border-gold focus:outline-none"
+              className="rounded-2xl border-2 border-leather/30 bg-leather/5 px-4 py-2.5 font-crimson text-leather-deep placeholder:italic placeholder:text-leather/40 focus:border-gold focus:outline-none dark:border-gold/40 dark:bg-leather-night/20 dark:text-ink-light dark:placeholder:text-gold/40"
               autoFocus
             />
           </div>
 
+          {/* body — QuillPen annotation overlay. The wrapper is
+              relative so the pen + canvas can layer on top of the
+              textarea. The textarea itself is the QuillPen's
+              anchor. */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-secondary" htmlFor="body">
+            <label
+              className="font-cinzel text-xs font-bold uppercase tracking-widest text-leather-deep dark:text-gold"
+              htmlFor="body"
+            >
               {t.modalLabelBody}
             </label>
-            <textarea
-              id="body"
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              rows={4}
-              placeholder={t.modalPlaceholderBody}
-              className="resize-none rounded-2xl border-2 border-border bg-input px-4 py-2.5 leading-relaxed text-foreground placeholder:text-muted-foreground focus:border-gold focus:outline-none"
-            />
+            <div className="relative">
+              <textarea
+                ref={bodyRef}
+                id="body"
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                rows={5}
+                placeholder={t.modalPlaceholderBody}
+                className="block w-full resize-none rounded-2xl border-2 border-leather/30 bg-leather/5 px-4 py-2.5 font-crimson leading-relaxed text-leather-deep placeholder:italic placeholder:text-leather/40 focus:border-gold focus:outline-none dark:border-gold/40 dark:bg-leather-night/20 dark:text-ink-light dark:placeholder:text-gold/40"
+              />
+              <QuillPenBody hostRef={bodyRef} />
+            </div>
           </div>
 
           {/* mood selector */}
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-semibold text-secondary">{t.modalLabelMood}</span>
+            <span className="font-cinzel text-xs font-bold uppercase tracking-widest text-leather-deep dark:text-gold">
+              {t.modalLabelMood}
+            </span>
             <div className="flex items-center justify-between gap-2">
               {MOODS.map((m) => (
                 <button
@@ -230,8 +318,8 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
                   className={cn(
                     "flex flex-1 flex-col items-center gap-1 rounded-2xl border-2 p-2 transition-all",
                     mood === m.key
-                      ? "border-gold bg-gold/10 gold-glow"
-                      : "border-transparent hover:bg-accent/20",
+                      ? "border-gold bg-gold/20"
+                      : "border-leather/20 hover:bg-leather/10 dark:border-gold/20 dark:hover:bg-gold/10",
                   )}
                 >
                   <span
@@ -249,8 +337,11 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
 
           {/* sticker picker */}
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-semibold text-secondary">
-              {t.modalLabelStickers} <span className="text-xs text-muted-foreground">{t.modalStickersHint}</span>
+            <span className="font-cinzel text-xs font-bold uppercase tracking-widest text-leather-deep dark:text-gold">
+              {t.modalLabelStickers}{" "}
+              <span className="font-crimson text-xs italic text-leather/60 dark:text-gold/60">
+                {t.modalStickersHint}
+              </span>
             </span>
             <div className="grid grid-cols-8 gap-1.5">
               {STICKERS.map((s) => (
@@ -262,13 +353,65 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
                   className={cn(
                     "aspect-square rounded-xl text-xl transition-all hover:scale-110",
                     selectedStickers.includes(s)
-                      ? "bg-accent/40 gold-glow scale-110"
-                      : "bg-secondary/10",
+                      ? "bg-gold/30 ring-2 ring-gold scale-110"
+                      : "bg-leather/10 dark:bg-gold/10",
                   )}
                 >
                   {s}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* photo slots — one per preset, click to attach. We
+              keep all four slots visible so the user understands
+              the size options; an attached photo replaces the
+              placeholder for that slot. */}
+          <div className="flex flex-col gap-2">
+            <span className="font-cinzel text-xs font-bold uppercase tracking-widest text-leather-deep dark:text-gold">
+              Photos
+            </span>
+            <div className="flex flex-wrap items-end gap-3">
+              {PHOTO_SLOT_ORDER.map((kind) => {
+                const attached = photos.find((p) => p.slot === kind)
+                return (
+                  <div key={kind} className="flex flex-col items-center gap-1">
+                    {attached ? (
+                      <div className="relative">
+                        <PhotoSlot kind={kind} url={attached.url} />
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(kind)}
+                          className="absolute -right-2 -top-2 rounded-full border border-destructive/50 bg-destructive/20 p-1 text-destructive hover:bg-destructive/40"
+                          aria-label="Remove photo"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <PhotoSlot kind={kind} onClick={() => pickPhotoFile(kind)} />
+                    )}
+                    <input
+                      ref={(el) => {
+                        fileInputRefs.current[kind] = el
+                      }}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) onPhotoSelected(kind, file)
+                        // reset value so picking the same file again
+                        // still triggers onChange
+                        e.target.value = ""
+                      }}
+                    />
+                    <span className="font-cinzel text-[9px] font-bold uppercase tracking-widest text-leather/60 dark:text-gold/60">
+                      {PHOTO_SLOT_SIZES[kind].label}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           </div>
 
@@ -284,9 +427,8 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
             <Sparkles className={cn("h-5 w-5", casting && "animate-spin")} />
           </Button>
 
-          {/* Casting “書寫中” overlay — a magic pen wipes across the
-              entry title while sparkles spin at both ends, replacing
-              the old plain animate-pulse. */}
+          {/* Casting "書寫中" overlay — a magic pen wipes across the
+              entry title while sparkles spin at both ends. */}
           {casting && (
             <div
               className="relative mt-2 overflow-hidden rounded-2xl border-2 border-gold/40 bg-gold/5 px-4 py-3 dark:border-gold/60 dark:bg-purple-500/10"
@@ -295,7 +437,7 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
             >
               <div className="flex items-center gap-2">
                 <span className="casting-sparkle text-lg" aria-hidden="true">🪄</span>
-                <span className="handwriting flex-1 truncate text-sm text-secondary">
+                <span className="handwriting flex-1 truncate text-sm text-leather-deep dark:text-ink-light">
                   {title.trim() || t.modalPlaceholderTitle}
                 </span>
                 <span className="casting-sparkle text-lg" aria-hidden="true">✨</span>
@@ -313,16 +455,20 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
 
         {/* Lumi divider */}
         <div className="my-5 flex items-center gap-2">
-          <hr className="flex-1 border-border/60" />
-          <span className="text-xs font-semibold text-gold">Princess Lumi</span>
-          <hr className="flex-1 border-border/60" />
+          <hr className="flex-1 border-leather/30 dark:border-gold/30" />
+          <span className="font-cinzel text-xs font-bold uppercase tracking-widest text-gold">
+            Princess Lumi
+          </span>
+          <hr className="flex-1 border-leather/30 dark:border-gold/30" />
         </div>
 
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold text-secondary">
+            <span className="font-cinzel text-[10px] font-bold uppercase tracking-widest text-leather-deep dark:text-gold">
               {t.modalAiLanguage}:{" "}
-              <span className="text-secondary/70">{t.modalAiLanguageHint}</span>
+              <span className="font-crimson text-xs italic font-normal text-leather/70 dark:text-gold/70">
+                {t.modalAiLanguageHint}
+              </span>
             </span>
             <div className="inline-flex overflow-hidden rounded-full border-2 border-gold/60 text-xs font-bold">
               <button
@@ -330,7 +476,7 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
                 onClick={() => setAiLang("zh")}
                 className={cn(
                   "px-3 py-1 transition-all",
-                  aiLang === "zh" ? "gold-gradient text-gold-foreground" : "text-gold hover:bg-gold/10",
+                  aiLang === "zh" ? "bg-gold text-leather-night" : "text-gold hover:bg-gold/10",
                 )}
                 aria-pressed={aiLang === "zh"}
               >
@@ -341,7 +487,7 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
                 onClick={() => setAiLang("en")}
                 className={cn(
                   "px-3 py-1 transition-all",
-                  aiLang === "en" ? "gold-gradient text-gold-foreground" : "text-gold hover:bg-gold/10",
+                  aiLang === "en" ? "bg-gold text-leather-night" : "text-gold hover:bg-gold/10",
                 )}
                 aria-pressed={aiLang === "en"}
               >
@@ -356,7 +502,7 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
             size="lg"
             disabled={lumiLoading}
             onClick={summonLumi}
-            className="w-full border-accent text-secondary hover:bg-accent/20"
+            className="w-full border-gold/60 text-gold hover:bg-gold/10"
           >
             <Sparkles className={cn("h-5 w-5", lumiLoading && "animate-spin")} />
             {lumiLoading ? t.modalSummoningLumi : t.modalSummonLumi}
@@ -378,7 +524,7 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
           {lumiReply && (
             <div className="rounded-2xl border-2 border-gold/40 bg-gold/10 p-4 dark:border-gold/60 dark:bg-purple-500/10">
               <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="text-xs font-bold uppercase tracking-wide text-gold">
+                <p className="font-cinzel text-[10px] font-bold uppercase tracking-widest text-gold">
                   {t.modalLumiSays}
                 </p>
                 <button
@@ -397,8 +543,7 @@ export function EntryModal({ open, onClose, onSave, initial }: EntryModalProps) 
                 notebook={true}
                 onComplete={() => {
                   // The chime fires when summonLumi receives the reply;
-                  // this hook is here for future hooks (e.g. a tiny
-                  // sparkle on the card if we ever surface Lumi on it).
+                  // this hook is here for future hooks.
                 }}
               />
               <button

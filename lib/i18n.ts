@@ -58,6 +58,18 @@ export type Dict = {
   // Card-level label for the persisted Lumi reply that renders under
   // the diary card body. Bilingual heading in EN, single-line in zh.
   lumiSays: string
+  // Photo-slot placeholder (Iteration 5). "Tap to add photo" /
+  // "點擊加入相片". The frame also shows the exact W×H pixels of
+  // the slot preset (e.g. "300×400") which is rendered as a
+  // separate non-translated monospaced label.
+  photoSlotHint: string
+  /** Aria label when a photo is attached, to announce the dims. */
+  photoSlotPhotoLabel: string
+  // Quill pen / new entry / page navigation
+  bookPageNew: string
+  bookPageFeed: string
+  newEntryHeading: string
+  newEntrySubheading: string
   modalAiLanguage: string
   modalAiLanguageHint: string
   modalAiError: string
@@ -168,6 +180,12 @@ const en: Dict = {
   modalSummoningLumi: "🪄 Summoning Lumi...",
   modalLumiSays: "Princess Lumi says...",
   lumiSays: "🪄 Princess Lumi says:",
+  photoSlotHint: "Tap to add photo",
+  photoSlotPhotoLabel: "Photo",
+  bookPageNew: "New Entry",
+  bookPageFeed: "Past Whispers",
+  newEntryHeading: "I. New Entry",
+  newEntrySubheading: "Begin a fresh page...",
   modalAiLanguage: "Reply language",
   modalAiLanguageHint: "Chinese / English",
   modalAiError: "Lumi couldn't reply right now — please try again 💜",
@@ -270,6 +288,12 @@ const zh: Dict = {
   modalSummoningLumi: "🪄 緊嚟緊嚟...",
   modalLumiSays: "露米公主話...",
   lumiSays: "🪄 露米公主話：",
+  photoSlotHint: "點擊加入相片",
+  photoSlotPhotoLabel: "相片",
+  bookPageNew: "新一篇",
+  bookPageFeed: "舊回憶",
+  newEntryHeading: "I. 新一篇",
+  newEntrySubheading: "展開新嘅一頁...",
   modalAiLanguage: "AI 回覆語言",
   modalAiLanguageHint: "中文 / 英文",
   modalAiError: "露米依家覆唔到你，遲啲再試 💜",

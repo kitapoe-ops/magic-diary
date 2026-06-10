@@ -3,13 +3,13 @@
 /**
  * MagicPenWriting
  * ----------------
- * Renders a string of text with a "magic pen" animation:
- *   1. A pen icon rides a sine-wave SVG path from left to right.
- *   2. Each character fades in + slides up in sequence (per-char delay).
- *   3. When the last character lands, a 360° spark-burst fires at the
- *      end of the text and the parent is notified via onComplete.
+ * Renders a string of text with a per-character fade-in
+ * "typewriter" effect, then fires a 360° spark-burst at the end.
+ * Iteration 5 update: the pen-riding-the-sine-wave SVG animation
+ * has been removed (per the brief — "改 instant render"). The text
+ * still reveals per-character, but there's no travelling-pen icon.
  *
- * Pure React + useState/useEffect + SVG <animateMotion>. No new deps.
+ * Pure React + useState/useEffect. No new deps.
  *
  * Props
  *   text       — the text to "write" out
@@ -139,9 +139,6 @@ export function MagicPenWriting({
     }
   }
 
-  // Pen traversal duration: text.length * speed (ms).
-  const penDurationMs = useMemo(() => Math.max(800, text.length * speed), [text, speed])
-
   // Build the wave path. We size the SVG to span the full width; the
   // viewBox keeps it responsive. 1000x40 is plenty for our needs.
   const wavePath = useMemo(() => buildWavePath(1000, 40), [])
@@ -156,18 +153,19 @@ export function MagicPenWriting({
       className={cn("relative w-full select-none", className)}
       aria-label={text}
     >
-      {/* Pen + sine-wave path */}
-      <div className="pointer-events-none relative h-10 w-full overflow-hidden">
+      {/* Static faint wave line — Iteration 5 changed this from a
+          moving-pen + sine-wave SVG to a static faint line. The
+          pen traversal is gone (per the brief — "改 instant
+          render"). The line still gives the Lumi reply a "being
+          written" feel because the per-char fade-in below happens
+          on top of it. */}
+      <div className="pointer-events-none relative h-3 w-full overflow-hidden">
         <svg
-          viewBox="0 0 1000 40"
+          viewBox="0 0 1000 12"
           preserveAspectRatio="none"
-          className="absolute inset-0 h-full w-full"
+          className="absolute inset-0 h-full w-full opacity-60"
           aria-hidden="true"
         >
-          {/* Hand-drawn wavy line. Stroke colour is driven by the
-              `--pen-wave-color` CSS variable so dark mode gets a
-              brighter gold and light mode keeps the original warmer
-              gold. */}
           <path
             d={wavePath}
             fill="none"
@@ -176,28 +174,6 @@ export function MagicPenWriting({
             strokeLinecap="round"
             strokeDasharray="4 5"
           />
-          {/* Pen icon riding the path */}
-          <g>
-            <text
-              fontSize={26}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fill="hsl(43, 96%, 56%)"
-              style={{ filter: "drop-shadow(0 0 6px hsla(43,96%,56%,0.6))" }}
-            >
-              <animateMotion
-                dur={`${penDurationMs}ms`}
-                repeatCount="1"
-                fill="freeze"
-                rotate="0"
-                path={wavePath}
-                keyPoints="0;1"
-                keyTimes="0;1"
-                calcMode="linear"
-              />
-              ✒️
-            </text>
-          </g>
         </svg>
       </div>
 

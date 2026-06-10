@@ -9,3 +9,5 @@ node_modules
 .env*.local
 .DS_Store
 tsconfig.tsbuildinfo
+build-output.txt
+PHASE_5_SUMMARY_DRAFT.md

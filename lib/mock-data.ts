@@ -1,3 +1,5 @@
+import type { DiaryPhoto } from "./photo-sizes"
+
 export type MoodKey = "sad" | "meh" | "happy" | "excited" | "loved"
 
 export interface Mood {
@@ -55,6 +57,18 @@ export interface DiaryEntry {
    * can be rendered / replayed with the correct language hint.
    */
   lumiLanguage?: "en" | "zh" | null
+  /**
+   * Optional photo slots attached to this entry. Each entry can
+   * carry zero or more photos; the `slot` field records which
+   * preset the photo was placed in (portrait-3x4, landscape-4x3,
+   * square-stamp, wide-banner) so the diary card can reserve the
+   * exact W×H frame when rendering the placeholder or the image.
+   *
+   * Iteration 5: the editor exposes a `PhotoSlot` for each
+   * preset; this array is what gets persisted to localStorage.
+   * Default `[]` for entries that don't have any photos.
+   */
+  photos?: DiaryPhoto[]
 }
 
 export const MOCK_ENTRIES: DiaryEntry[] = [
@@ -68,6 +82,7 @@ export const MOCK_ENTRIES: DiaryEntry[] = [
     stickers: ["🌈", "⭐", "✨"],
     lumiReply: null,
     lumiLanguage: null,
+    photos: [],
   },
   {
     id: "2",
@@ -79,6 +94,7 @@ export const MOCK_ENTRIES: DiaryEntry[] = [
     stickers: ["💜", "💖", "🦄", "🌸"],
     lumiReply: null,
     lumiLanguage: null,
+    photos: [],
   },
   {
     id: "3",
@@ -90,6 +106,7 @@ export const MOCK_ENTRIES: DiaryEntry[] = [
     stickers: ["⭐", "👑", "🌟", "✨"],
     lumiReply: null,
     lumiLanguage: null,
+    photos: [],
   },
 ]
 

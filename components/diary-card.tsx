@@ -4,65 +4,50 @@ import { useState } from "react"
 import { Pencil, Trash2 } from "lucide-react"
 import { MOODS, type DiaryEntry } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
-import Image from "next/image"
 import { useI18n } from "@/hooks/use-i18n"
 import { NotebookPage } from "@/components/notebook-page"
+import { PhotoSlot } from "./photo-slot"
+import { PageCorner } from "./page-corner"
 
 interface DiaryCardProps {
   entry: DiaryEntry
+  /**
+   * Optional Roman-numeral page label to print on the bottom of
+   * the card. Defaults to no label.
+   */
+  pageLabel?: string
   onEdit: (entry: DiaryEntry) => void
   onDelete: (id: string) => void
 }
 
-interface Particle {
-  id: number
-  emoji: string
-  left: string
-  top: string
-}
-
-const PARTICLE_EMOJIS = ["✨", "⭐", "💜", "🌟", "💫", "🪄"]
-
-export function DiaryCard({ entry, onEdit, onDelete }: DiaryCardProps) {
+/**
+ * DiaryCard
+ * ---------
+ * A single diary entry as a "page" of the book. The body text
+ * lives in a <NotebookPage> (theme-aware parchment / deep purple
+ * paper) and the title, stickers, photos, mood, and the
+ * persisted Lumi reply all wrap around it.
+ *
+ * Iteration 5: removed hover sparkles, removed starry background
+ * refs, removed `animate-slide-up`. Card is intentionally static
+ * — only the edit / delete buttons (which appear via
+ * group-hover) hint at interactivity, and the page label / photo
+ * slots add structure.
+ */
+export function DiaryCard({ entry, pageLabel, onEdit, onDelete }: DiaryCardProps) {
   const { t } = useI18n()
-  const [particles, setParticles] = useState<Particle[]>([])
   const mood = MOODS.find((m) => m.key === entry.mood)
-
-  function spawnParticles() {
-    const next: Particle[] = Array.from({ length: 6 }).map((_, i) => ({
-      id: Date.now() + i,
-      emoji: PARTICLE_EMOJIS[Math.floor(Math.random() * PARTICLE_EMOJIS.length)],
-      left: `${Math.random() * 90 + 5}%`,
-      top: `${Math.random() * 70 + 10}%`,
-    }))
-    setParticles(next)
-    window.setTimeout(() => setParticles([]), 800)
-  }
 
   return (
     <article
-      onMouseEnter={spawnParticles}
-      className="glass-card handwriting-wobble group relative overflow-hidden rounded-3xl p-5 animate-slide-up"
+      className="group relative rounded-2xl border-2 border-leather/30 bg-leather/5 p-4 dark:border-gold/30 dark:bg-leather-night/20"
     >
-      {/* hover particles */}
-      {particles.map((p) => (
-        <span
-          key={p.id}
-          className="pointer-events-none absolute select-none text-lg"
-          style={{
-            left: p.left,
-            top: p.top,
-            animation: "sparkle-pop 0.8s ease-out forwards",
-          }}
-          aria-hidden="true"
-        >
-          {p.emoji}
-        </span>
-      ))}
+      <PageCorner position="top-left" tone="leather" />
+      <PageCorner position="bottom-right" tone="leather" />
 
       <div className="mb-3 flex items-start justify-between gap-3">
-        {/* date badge */}
-        <span className="gold-gradient rounded-full px-3 py-1 text-xs font-bold text-gold-foreground shadow">
+        {/* date badge — gold gradient like a wax-seal stamp */}
+        <span className="rounded-full border border-gold/60 bg-gold/15 px-3 py-1 font-cinzel text-[10px] font-bold uppercase tracking-widest text-gold">
           {entry.dateLabel}
         </span>
 
@@ -72,14 +57,14 @@ export function DiaryCard({ entry, onEdit, onDelete }: DiaryCardProps) {
             <button
               onClick={() => onEdit(entry)}
               aria-label={t.cardEdit}
-              className="rounded-full bg-secondary/20 p-2 text-secondary transition-colors hover:bg-secondary/40"
+              className="rounded-full border border-leather/40 bg-leather/10 p-2 text-leather hover:bg-leather/20 dark:border-gold/40 dark:bg-gold/10 dark:text-gold dark:hover:bg-gold/20"
             >
               <Pencil className="h-4 w-4" />
             </button>
             <button
               onClick={() => onDelete(entry.id)}
               aria-label={t.cardDelete}
-              className="rounded-full bg-destructive/20 p-2 text-destructive transition-colors hover:bg-destructive/40"
+              className="rounded-full border border-destructive/40 bg-destructive/10 p-2 text-destructive hover:bg-destructive/20"
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -87,8 +72,8 @@ export function DiaryCard({ entry, onEdit, onDelete }: DiaryCardProps) {
 
           {/* mood emoji with glow */}
           <span
-            className="text-3xl text-glow"
-            style={{ filter: "drop-shadow(0 0 8px hsla(43,96%,56%,0.7))" }}
+            className="text-2xl"
+            style={{ filter: "drop-shadow(0 0 4px hsla(43,96%,56%,0.6))" }}
             title={mood?.label}
             aria-label={mood?.label}
           >
@@ -98,49 +83,53 @@ export function DiaryCard({ entry, onEdit, onDelete }: DiaryCardProps) {
       </div>
 
       <div className="mb-2 flex items-center gap-2">
-        <span className="rounded-full bg-primary/40 px-2.5 py-0.5 text-[11px] font-semibold text-secondary">
+        <span className="rounded-full border border-leather/30 bg-leather/10 px-2.5 py-0.5 font-cinzel text-[10px] font-bold uppercase tracking-widest text-leather/80 dark:border-gold/30 dark:bg-gold/10 dark:text-gold/80">
           {entry.category}
         </span>
       </div>
 
       {/* Title + body share a single "notebook page" so the paper is
           a single visual element. Mood + category + stickers stay
-          on the outer glassmorphism card so the magic-theme purple +
-          gold + emoji decorations still pop on the dark glass.
-
-          Both the title and the body use the `.handwriting` /
-          `.handwriting-bold` classes, which source their colour and
-          text-shadow from the `--handwriting-ink` / `--handwriting-
-          shadow` CSS variables. Those variables flip automatically
-          between dark and light mode (deep purple-black on cream in
-          `.day`, light purple-white on deep purple in `:root`), so
-          the diary text reads correctly on every theme without
-          needing any inline `style={{ color: ... }}` overrides. */}
-      <NotebookPage variant="diary" className="mb-1">
-        <h3 className="handwriting-bold gradient-title mb-2 text-pretty text-2xl leading-8">
+          on the outer parchment card so the wood-tone + gold + 
+          emoji decorations still pop on the dark paper. */}
+      <NotebookPage variant="diary" className="mb-2">
+        <h3 className="handwriting-bold mb-2 text-balance text-2xl leading-8 text-leather-deep dark:text-ink-light">
           {entry.title}
         </h3>
-        <p className="handwriting text-pretty leading-8">
+        <p className="handwriting text-pretty leading-8 text-leather-deep dark:text-ink-light">
           {entry.body}
         </p>
       </NotebookPage>
 
+      {/* Photo slots — render one PhotoSlot per persisted photo,
+          or just show the empty placeholder for any slot the user
+          has not yet filled (only when photos array is empty
+          entirely do we show nothing). We always render the
+          photos array as-is to avoid eating the layout budget
+          for placeholders the user might not want. */}
+      {entry.photos && entry.photos.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-end gap-3">
+          {entry.photos.map((photo, i) => (
+            <PhotoSlot
+              key={i}
+              kind={photo.slot}
+              url={photo.url}
+              compact
+            />
+          ))}
+        </div>
+      )}
+
       {/* Persisted Lumi reply (from entry-modal's "Summon Princess Lumi"
           action). Only renders when an entry actually has a reply
-          persisted; legacy entries (no field) and entries that never
-          summoned Lumi simply skip this block. Bilingual header via
-          the `lumiSays` i18n key. The card background flips with
-          theme: light mode keeps the warm `bg-gold/5`, dark mode
-          switches to a deep purple `bg-purple-500/10` so the gold
-          border still pops on the deep purple notebook paper. The
-          text inherits the theme-aware `.handwriting` ink colour. */}
+          persisted. Bilingual header via the `lumiSays` i18n key. */}
       {entry.lumiReply && (
         <div
-          className="mt-3 rounded-2xl border-2 border-gold/40 bg-gold/5 p-3 dark:border-gold/60 dark:bg-purple-500/10"
+          className="mt-2 rounded-2xl border-2 border-gold/40 bg-gold/10 p-3 dark:border-gold/60 dark:bg-purple-500/10"
           role="note"
           aria-label={t.lumiSays}
         >
-          <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-gold">
+          <p className="mb-1 font-cinzel text-[10px] font-bold uppercase tracking-widest text-gold">
             {t.lumiSays}
           </p>
           <p className="handwriting text-sm leading-relaxed">
@@ -150,12 +139,11 @@ export function DiaryCard({ entry, onEdit, onDelete }: DiaryCardProps) {
       )}
 
       {/* sticker row */}
-      <div className={cn("mt-4 flex items-center gap-2")}>
+      <div className={cn("mt-3 flex items-center gap-2")}>
         {entry.stickers.map((sticker, i) => (
           <span
             key={i}
-            className="emoji animate-float-slow rounded-full bg-accent/15 p-1.5 text-xl"
-            style={{ animationDelay: `${i * 0.3}s` }}
+            className="emoji rounded-full bg-gold/10 p-1.5 text-xl"
             aria-hidden="true"
           >
             {sticker}
@@ -163,15 +151,14 @@ export function DiaryCard({ entry, onEdit, onDelete }: DiaryCardProps) {
         ))}
       </div>
 
-      {/* decoration sparkle - top-right */}
-      <Image
-        src="/images/card-decoration.jpg"
-        alt=""
-        width={16}
-        height={16}
-        aria-hidden="true"
-        className="pointer-events-none absolute right-3 top-3 h-4 w-4 select-none opacity-60"
-      />
+      {/* Roman-numeral page label at the bottom (Iteration 5).
+          Hidden when the label isn't provided so existing callers
+          that don't pass it don't get a stray "I" on the page. */}
+      {pageLabel && (
+        <div className="mt-3 flex justify-center">
+          <span className="page-number">— {pageLabel} —</span>
+        </div>
+      )}
     </article>
   )
 }

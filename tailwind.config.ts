@@ -28,8 +28,51 @@ const config: Config = {
           "\"Noto Sans CJK SC\"",
           "cursive",
         ],
+        // Hogwarts-style serif used for titles, page numbers, and
+        // the spine label. Loaded via next/font/google in
+        // app/layout.tsx; the CSS variable `--font-cinzel` is
+        // defined there.
+        cinzel: [
+          "var(--font-cinzel)",
+          "\"Cinzel\"",
+          "\"Cinzel Decorative\"",
+          "ui-serif",
+          "Georgia",
+          "serif",
+        ],
+        // Parchment-friendly serif for body text on diary pages
+        // (Roman-numeral page numbers, "Anno MMXXVI" tooling).
+        crimson: [
+          "var(--font-crimson)",
+          "\"Crimson Text\"",
+          "ui-serif",
+          "Georgia",
+          "serif",
+        ],
       },
+      // Iteration 5: Hogwarts colour tokens. These are kept as
+      // explicit hex values (not CSS variables) so they survive
+      // without the theme attribute and can be used in plain
+      // `bg-parchment` / `text-leather` Tailwind classes.
+      // Merged with the existing HSL-driven theme tokens (gold,
+      // primary, secondary, etc.) — Tailwind merges top-level
+      // `colors` objects, so both namespaces coexist.
       colors: {
+        // Light theme tokens
+        parchment: "#f4e9c8",
+        "parchment-warm": "#fdf6e3",
+        "parchment-dim": "#c9a574",
+        ink: "#3d2817",
+        leather: "#6b4423",
+        "leather-deep": "#3d2817",
+        // Dark theme tokens
+        "leather-night": "#1a0f0a",
+        gold: "#d4a574",
+        "gold-bright": "#fbbf24",
+        "ink-light": "#e9d5ff",
+        // Existing HSL tokens (kept untouched so component code
+        // referencing `bg-primary` / `text-gold` / `text-accent`
+        // still works).
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
@@ -56,10 +99,10 @@ const config: Config = {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
         },
-        gold: {
-          DEFAULT: "hsl(var(--gold))",
-          foreground: "hsl(var(--gold-foreground))",
-        },
+        // The hex `gold` token above (`#d4a574`) is what
+        // `text-gold` / `bg-gold` resolves to. The HSL version
+        // still lives in the CSS variable `--gold` for the few
+        // components that reach for `hsl(var(--gold))` directly.
         magicpink: {
           DEFAULT: "hsl(var(--magic-pink))",
         },

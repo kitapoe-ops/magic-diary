@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Quicksand, Pacifico, Kalam, ZCOOL_KuaiLe } from "next/font/google"
+import { Quicksand, Pacifico, Kalam, ZCOOL_KuaiLe, Cinzel, Crimson_Text } from "next/font/google"
 import "./globals.css"
 
 const quicksand = Quicksand({
@@ -35,6 +35,25 @@ const zcool = ZCOOL_KuaiLe({
   weight: ["400"],
 })
 
+// Iteration 5 — Hogwarts aesthetic. Cinzel is a classical Roman
+// serif that reads as "old parchment title"; we use it for the
+// app title, page numbers, and the spine label. Two weights is
+// plenty for our needs (regular + bold).
+const cinzel = Cinzel({
+  subsets: ["latin"],
+  variable: "--font-cinzel",
+  weight: ["400", "600", "700"],
+})
+
+// Crimson Text — a more readable serif for diary body / page
+// subheadings. Loads regular + italic + bold.
+const crimson = Crimson_Text({
+  subsets: ["latin"],
+  variable: "--font-crimson",
+  weight: ["400", "600", "700"],
+  style: ["normal", "italic"],
+})
+
 export const metadata: Metadata = {
   title: "✨ Magic Diary ✨",
   description: "A magical diary full of sparkles, spells, and wonderful memories!",
@@ -57,7 +76,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${quicksand.variable} ${pacifico.variable} ${kalam.variable} ${zcool.variable} bg-background`}
+      className={`${quicksand.variable} ${pacifico.variable} ${kalam.variable} ${zcool.variable} ${cinzel.variable} ${crimson.variable} bg-background`}
     >
       <body className="font-sans antialiased">{children}</body>
     </html>
