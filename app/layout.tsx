@@ -1,6 +1,7 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Quicksand, Pacifico, Kalam, ZCOOL_KuaiLe, Cinzel, Crimson_Text, Caveat, ZCOOL_XiaoWei, Ma_Shan_Zheng } from "next/font/google"
+import { VampireEmbed } from "@/components/vampire-embed"
 import "./globals.css"
 
 const quicksand = Quicksand({
@@ -111,6 +112,11 @@ export default function RootLayout({
       <head />
       <body className="font-sans antialiased text-leather-deep min-h-screen">
         {children}
+        {/* Cross-origin Live2D virtual-human widget from vampire.kitahim.uk.
+            Injected client-side to avoid hydration mismatches with the
+            existing React tree (I18nProvider, ThemeProvider, etc).
+            See components/vampire-embed.tsx for full config. */}
+        <VampireEmbed />
       </body>
     </html>
   )
